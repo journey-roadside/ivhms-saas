@@ -1,0 +1,1208 @@
+<!doctype html>
+<html lang="zh-CN"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>视力健康管理平台 · 视力评估</title>
+<style>
+  :root {
+    --bg:          #f7f7f7;
+    --surface:     #ffffff;
+    --fg:          #0a0a0a;
+    --muted:       #5a5a5c;
+    --muted-light: #888888;
+    --border:      #e5e5e5;
+    --border-md:   #ededed;
+    --accent:      #00d4a4;
+    --accent-deep: #0d0d0d;
+    --accent-light:#7cebcb;
+    --error:       #d45656;
+    --error-light: #fde8e8;
+    --warning:     #f59e0b;
+    --info:        #3b82f6;
+    --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --font-body:    'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+    --radius-xs: 4px; --radius-sm: 6px; --radius-md: 8px; --radius-lg: 12px; --radius-xl: 16px; --radius-xxl: 24px; --radius-pill: 9999px;
+    --shadow-card: rgba(0,0,0,0.03) 0 2px 4px; --shadow-btn: rgba(0,0,0,0.06) 0 1px 2px;
+    --sidebar-w: 240px;
+    --header-h: 56px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;scrollbar-width:none;-ms-overflow-style:none}
+  html::-webkit-scrollbar{display:none}
+  body{font-family:var(--font-body);color:var(--fg);background:var(--bg);min-height:100vh;display:flex;line-height:1.5}
+
+  /* ─── sidebar ────────────────────────────────────────────── */
+  .sidebar{width:var(--sidebar-w);background:var(--fg);color:#fff;display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;transition:transform .3s}
+  .sidebar-logo{padding:16px 20px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,0.08)}
+  .sidebar-logo-icon{width:32px;height:32px;border-radius:var(--radius-md);background:var(--accent);display:flex;align-items:center;justify-content:center}
+  .sidebar-logo-icon svg{width:16px;height:16px;color:var(--fg)}
+  .sidebar-logo-text{font-family:var(--font-display);font-size:15px;font-weight:600;letter-spacing:-0.01em}
+  .sidebar-nav{padding:8px 0;flex:1}
+  .sidebar-item{display:flex;align-items:center;gap:12px;padding:10px 20px;font-size:14px;color:rgba(255,255,255,0.6);cursor:pointer;transition:color .15s,background .15s;border-radius:0;position:relative;text-decoration:none}
+  .sidebar-item:hover{color:rgba(255,255,255,0.9);background:rgba(255,255,255,0.04)}
+  .sidebar-item.active{color:#fff;background:rgba(0,212,164,0.12)}
+  .sidebar-item.active::before{content:'';position:absolute;left:0;top:4px;bottom:4px;width:3px;background:var(--accent);border-radius:0 2px 2px 0}
+  .sidebar-item svg{width:18px;height:18px;flex-shrink:0}
+  .sidebar-bottom{padding:16px 20px;border-top:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between}
+  .sidebar-user{display:flex;align-items:center;gap:10px;cursor:pointer;transition:opacity .15s}
+  .sidebar-user:hover{opacity:.9}
+  .sidebar-avatar{width:28px;height:28px;border-radius:var(--radius-pill);background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--fg)}
+  .sidebar-username{font-size:13px;color:#fff;font-weight:500}
+  .sidebar-bottom-actions{display:flex;align-items:center;gap:8px}
+  .sidebar-bottom-btn{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:var(--radius-md);cursor:pointer;color:rgba(255,255,255,0.6);transition:background .15s,color .15s;position:relative}
+  .sidebar-bottom-btn:hover{background:rgba(255,255,255,0.08);color:#fff}
+  .sidebar-bottom-btn svg{width:18px;height:18px}
+  .sidebar-msg-badge{position:absolute;top:-2px;right:-4px;background:var(--accent);color:var(--fg);font-size:10px;font-weight:700;padding:1px 5px;border-radius:var(--radius-pill);min-width:16px;text-align:center;line-height:1.4}
+
+  .main-wrap{flex:1;min-width:0;margin-left:var(--sidebar-w);display:flex;flex-direction:column;min-height:100vh}
+
+  /* ─── sidebar dropdowns ─────────────────────────────────── */
+  .sidebar-user-dropdown{position:fixed;left:20px;width:var(--sidebar-w);bottom:60px;z-index:200;display:none;opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;background:var(--fg);border:1px solid rgba(255,255,255,0.12);border-radius:var(--radius-lg);box-shadow:0 8px 32px rgba(0,0,0,0.5),0 2px 8px rgba(0,0,0,0.3)}
+  .sidebar-user-dropdown.open{display:block;opacity:1;transform:translateY(0)}
+  .sidebar-msg-panel{position:fixed;left:20px;width:360px;max-width:calc(100vw - 32px);bottom:60px;z-index:200;display:none;opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;background:var(--fg);border:1px solid rgba(255,255,255,0.12);border-radius:var(--radius-lg);box-shadow:0 8px 32px rgba(0,0,0,0.5),0 2px 8px rgba(0,0,0,0.3)}
+  .sidebar-msg-panel.open{display:block;opacity:1;transform:translateY(0)}
+  .sidebar-user-dropdown .user-menu-item{color:#fff;display:flex;align-items:center;gap:10px;padding:10px 16px;font-size:13px;cursor:pointer;transition:background .15s;text-decoration:none}
+  .sidebar-user-dropdown .user-menu-item:hover{background:rgba(255,255,255,0.08)}
+  .sidebar-user-dropdown .user-menu-item svg{width:16px;height:16px;color:rgba(255,255,255,0.55);flex-shrink:0}
+  .sidebar-user-dropdown .user-menu-item.danger{color:#ef4444}
+  .sidebar-user-dropdown .user-menu-item.danger svg{color:#ef4444}
+  .sidebar-user-dropdown .user-menu-divider{height:1px;background:rgba(255,255,255,0.08);margin:4px 12px}
+  .msg-empty{text-align:center;padding:32px 16px;display:flex;flex-direction:column;align-items:center;gap:8px}
+  .msg-empty-icon{color:rgba(255,255,255,0.3)}
+  .msg-empty-icon svg{width:36px;height:36px}
+  .msg-empty-text{font-size:13px;color:rgba(255,255,255,0.5)}
+  .msg-header{display:flex;align-items:center;justify-content:space-between;padding:16px;border-bottom:1px solid rgba(255,255,255,0.08)}
+  .msg-header-title{font-family:var(--font-display);font-size:14px;font-weight:600;color:#fff}
+  .msg-clear-btn{font-size:12px;color:var(--accent);cursor:pointer;font-weight:500;border:none;background:none;font-family:var(--font-body)}
+  .msg-clear-btn:hover{color:#fff}
+  .msg-list{max-height:320px;overflow-y:auto}
+  .msg-list::-webkit-scrollbar{width:4px}
+  .msg-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.15);border-radius:4px}
+  .msg-item{padding:12px 10px;border-bottom:1px solid rgba(255,255,255,0.06);cursor:pointer;transition:background .15s}
+  .msg-item:hover{background:rgba(255,255,255,0.06)}
+  .msg-item-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+  .msg-item-title{font-size:13px;font-weight:500;color:#fff;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .msg-item-time{font-size:11px;color:rgba(255,255,255,0.4)}
+  .msg-item-type{font-size:12px;color:rgba(255,255,255,0.55)}
+  .msg-footer{padding:12px 16px;border-top:1px solid rgba(255,255,255,0.08);text-align:center;font-size:13px;color:var(--accent);cursor:pointer;font-weight:500}
+  .msg-footer:hover{color:#fff}
+
+  /* ─── content ────────────────────────────────────────────── */
+  .content{flex:1;padding:24px 32px}
+  .content-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+  .content-title{font-family:var(--font-display);font-size:22px;font-weight:600;letter-spacing:-0.3px;color:var(--fg)}
+
+  /* ─── main tab bar ──────────────────────────────────────── */
+  .main-tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:4px;margin-bottom:20px;box-shadow:var(--shadow-card)}
+  .main-tab{padding:10px 20px;font-size:14px;font-weight:500;border-radius:var(--radius-md);cursor:pointer;color:var(--muted);transition:all .15s;background:none;border:none;font-family:var(--font-body)}
+  .main-tab:hover{color:var(--fg);background:var(--bg)}
+  .main-tab.active{background:var(--fg);color:#fff;box-shadow:var(--shadow-btn)}
+
+  /* ─── tab panels ────────────────────────────────────────── */
+  .tab-panel{display:none}
+  .tab-panel.active{display:block}
+
+  /* ─── assessment indicators table ───────────────────────── */
+  .assess-table-wrap{overflow-x:auto;margin-bottom:24px}
+  .assess-table{width:100%;border-collapse:collapse;font-size:13px}
+  .assess-table th{padding:12px 14px;text-align:left;font-weight:600;color:var(--muted);font-size:12px;border-bottom:1px solid #F2F2F2;line-height:20px;vertical-align:middle;white-space:nowrap;user-select:none}
+  .assess-table th.sortable{cursor:pointer}
+  .assess-table th.sortable:hover{color:var(--fg)}
+  .assess-table th .sort-icon{display:inline-block;width:12px;text-align:center;margin-left:2px;opacity:.3}
+  .assess-table th.sortable:hover .sort-icon{opacity:.7}
+  .assess-table td{padding:12px 14px;border-bottom:1px solid #F2F2F2;color:var(--fg);line-height:20px;vertical-align:middle}
+  .assess-table tbody tr:hover{background:rgba(0,212,164,0.03)}
+  .assess-table .text-right{text-align:right}
+  .assess-table .text-center{text-align:center}
+
+  /* ─── trend coloring ────────────────────────────────────── */
+  .trend-up{color:var(--accent);font-weight:500}
+  .trend-down{color:var(--error);font-weight:500}
+  .trend-flat{color:var(--muted-light);font-weight:500}
+  .trend-badge{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:var(--radius-pill);font-size:12px;font-weight:500}
+  .trend-badge.up{color:#fff;background:var(--accent)}
+  .trend-badge.down{color:#fff;background:var(--error)}
+  .trend-badge.flat{color:var(--muted);background:var(--border-md)}
+
+  /* ─── grade/level color dots ───────────────────────────── */
+  .level-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
+  .level-dot.l1{background:#00d4a4}
+  .level-dot.l2{background:#84cc16}
+  .level-dot.l3{background:#eab308}
+  .level-dot.l4{background:#f97316}
+  .level-dot.l5{background:#ef4444}
+
+  /* ─── cards ──────────────────────────────────────────────── */
+  .assess-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;box-shadow:var(--shadow-card);margin-bottom:20px}
+  .assess-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:12px;flex-wrap:wrap}
+  .assess-card-title{font-family:var(--font-display);font-size:16px;font-weight:600;color:var(--fg)}
+  .assess-card-subtitle{font-size:12px;color:var(--muted-light);font-weight:400}
+
+  /* ─── filter bar ───────────────────────────────────────── */
+  .filter-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .form-select{padding:0 36px 0 14px;height:40px;font-family:var(--font-body);font-size:14px;color:var(--fg);background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 12px center;border:1.5px solid var(--border-md);border-radius:var(--radius-md);outline:none;cursor:pointer;-webkit-appearance:none;-moz-appearance:none;appearance:none;transition:border-color .2s,box-shadow .2s}
+  .form-select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,164,0.12)}
+  .form-search{height:40px;padding:0 14px;font-family:var(--font-body);font-size:14px;color:var(--fg);background:var(--surface);border:1.5px solid var(--border-md);border-radius:var(--radius-md);outline:none;transition:border-color .2s,box-shadow .2s;min-width:200px}
+  .form-search:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,164,0.12)}
+  .form-search::placeholder{color:var(--muted-light)}
+  .btn-ghost{padding:8px 12px;font-size:14px;font-weight:500;border-radius:var(--radius-md);cursor:pointer;font-family:var(--font-body);background:transparent;color:var(--fg);border:none;transition:opacity .15s}
+  .btn-ghost:hover{opacity:.8}
+  .btn-primary{padding:10px 20px;font-size:14px;font-weight:500;border-radius:var(--radius-pill);cursor:pointer;font-family:var(--font-body);background:var(--fg);color:#fff;border:none;transition:opacity .15s}
+  .btn-primary:hover{opacity:.9}
+  .btn-outline{padding:8px 20px;font-size:14px;font-weight:500;border-radius:var(--radius-pill);cursor:pointer;font-family:var(--font-body);background:var(--surface);color:var(--fg);border:1px solid var(--border);transition:background .15s;display:inline-flex;align-items:center;gap:6px}
+  .btn-outline:hover{background:rgba(0,0,0,0.06)}
+  .btn-outline svg{width:16px;height:16px}
+
+  /* ─── level badge ──────────────────────────────────────── */
+  .level-badge{display:inline-flex;align-items:center;padding:2px 10px;border-radius:var(--radius-pill);font-size:12px;font-weight:500}
+  .level-badge.l1{background:#e6faf5;color:#059669}
+  .level-badge.l2{background:#ecfccb;color:#65a30d}
+  .level-badge.l3{background:#fef9c3;color:#ca8a04}
+  .level-badge.l4{background:#ffedd5;color:#ea580c}
+  .level-badge.l5{background:#fee2e2;color:#dc2626}
+
+  /* ─── status badge ────────────────────────────────────── */
+  .status-badge{display:inline-flex;align-items:center;padding:2px 10px;border-radius:var(--radius-pill);font-size:12px;font-weight:500}
+  .status-badge.valid{background:#e6faf5;color:var(--accent-deep)}
+  .status-badge.retest{background:#fef3c7;color:#d97706}
+  .status-badge.alert{background:#fee2e2;color:#dc2626}
+  .status-badge.done{background:#e6faf5;color:var(--accent-deep)}
+  .status-badge.pending{background:#fef3c7;color:#d97706}
+
+  /* ─── pagination ────────────────────────────────────────── */
+  .table-footer{display:flex;align-items:center;justify-content:space-between;padding:12px 0 0;font-size:13px}
+  .table-total{color:var(--muted-light)}
+  .table-pagination{display:flex;align-items:center;gap:6px}
+  .page-btn{width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);cursor:pointer;color:var(--fg);font-size:13px;font-weight:500;transition:background .15s;padding:0}
+  .page-btn:hover:not(:disabled){background:rgba(0,0,0,0.04)}
+  .page-btn.active{background:var(--fg);color:#fff;border-color:var(--fg)}
+  .page-btn:disabled{color:var(--muted-light);cursor:not-allowed;opacity:.5}
+  .page-info{font-size:13px;color:var(--muted);min-width:40px;text-align:center}
+
+  /* ─── row highlight ────────────────────────────────────── */
+  .row-highlight-top5{background:rgba(239,68,68,0.04)!important}
+  .row-highlight-bottom5{background:rgba(0,212,164,0.04)!important}
+  .row-current-term{font-weight:600;background:rgba(0,212,164,0.03)!important}
+
+  /* ─── student detail modal ─────────────────────────────── */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:1000;display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;transition:opacity .2s,visibility .2s}
+  .modal-overlay.open{opacity:1;visibility:visible}
+  .modal-box{background:var(--surface);border-radius:var(--radius-lg);padding:24px;width:600px;max-width:90vw;max-height:80vh;overflow-y:auto;box-shadow:rgba(0,0,0,0.12) 0 16px 48px}
+  .modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+  .modal-title{font-family:var(--font-display);font-size:18px;font-weight:600}
+  .modal-close{width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:var(--radius-md);cursor:pointer;color:var(--muted-light);transition:background .15s;background:none;border:none}
+  .modal-close:hover{background:var(--bg);color:var(--fg)}
+  .modal-close svg{width:18px;height:18px}
+
+  /* ─── checkbox ─────────────────────────────────────────── */
+  .check-col{width:40px;text-align:center}
+  .check-col input{accent-color:var(--accent-deep);width:15px;height:15px;cursor:pointer}
+
+  /* ─── hint / empty ─────────────────────────────────────── */
+  .hint-box{padding:40px 0;text-align:center;color:var(--muted-light);font-size:14px;line-height:1.8}
+  .hint-box svg{width:40px;height:40px;margin-bottom:12px;opacity:.35}
+
+  /* ─── trend chart data (simple SVG sparkline) ──────────── */
+  .spark-trend{display:inline-flex;align-items:center;gap:4px;font-size:12px}
+
+  /* ─── responsive ─────────────────────────────────────────── */
+  @media(max-width:640px){
+    .sidebar{transform:translateX(-100%)}
+    .sidebar.open{transform:translateX(0)}
+    .main-wrap{margin-left:0}
+    .content{padding:12px}
+    .main-tabs{gap:2px;padding:3px;overflow-x:auto}
+    .main-tab{padding:8px 12px;font-size:13px;white-space:nowrap}
+    .filter-bar{flex-direction:column;align-items:stretch}
+    .form-search{min-width:0}
+    .assess-card{padding:16px}
+    .assess-table{font-size:12px}
+    .assess-table th,.assess-table td{padding:8px 10px}
+    .modal-box{width:calc(100vw - 24px);padding:16px}
+  }
+  @media(min-width:641px) and (max-width:800px){
+    .sidebar{transform:translateX(-100%)}
+    .sidebar.open{transform:translateX(0)}
+    .main-wrap{margin-left:0}
+    .content{padding:16px}
+    .main-tab{padding:8px 14px}
+  }
+  @media(min-width:801px) and (max-width:1100px){
+    :root{--sidebar-w:180px}
+    .content{padding:20px}
+  }
+  @media(min-width:1101px) and (max-width:1400px){
+    :root{--sidebar-w:220px}
+  }
+  @media(min-width:1401px){
+    :root{--sidebar-w:260px}
+    .content{padding:32px 48px}
+  }
+  @media(prefers-reduced-motion:reduce){
+    .sidebar,.main-tab,.assess-table tbody tr{transition:none}
+  }
+</style>
+</head><body>
+
+<!-- sidebar -->
+<aside class="sidebar" id="sidebar"><div class="sidebar-logo"><div class="sidebar-logo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path></svg></div><span class="sidebar-logo-text">明瞳 · IVHMS</span></div>
+<nav class="sidebar-nav">
+<a class="sidebar-item" href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect></svg>数据概览</a>
+<a class="sidebar-item" href="statistics.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>统计分析</a>
+<a class="sidebar-item active" href="vision-assessment.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"></path><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"></path></svg>视力评估</a>
+<a class="sidebar-item" href="health-records.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>健康档案</a>
+<a class="sidebar-item" href="device-status.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>设备状态</a>
+</nav>
+<div class="sidebar-bottom"><div class="sidebar-user" id="sidebarUser"><div class="sidebar-avatar">张</div><span class="sidebar-username">张明远</span></div>
+<div class="sidebar-bottom-actions"><div class="sidebar-bottom-btn" id="sidebarMsgBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 01-3.46 0"></path></svg><span class="sidebar-msg-badge" id="sidebarMsgBadge">5</span></div>
+<div class="sidebar-bottom-btn" id="sidebarHelpBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></div></div></div></aside>
+
+<div class="main-wrap">
+<div class="sidebar-user-dropdown" id="userPanel">
+<a class="user-menu-item" href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>个人中心</a>
+<a class="user-menu-item" href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>管理后台</a>
+<div class="user-menu-divider"></div>
+<div class="user-menu-item danger" id="logoutBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>退出登录</div></div>
+
+<div class="sidebar-msg-panel" id="msgPanel"><div class="msg-header"><span class="msg-header-title">消息通知</span><button class="msg-clear-btn" id="msgClearBtn">全部已读</button></div>
+<div class="msg-list" id="msgList">
+<div class="msg-item"><div class="msg-item-top"><span class="msg-item-title">三年级视力筛查已完成</span><span class="msg-item-time">10:30</span></div><span class="msg-item-type">筛查通知</span></div>
+<div class="msg-item"><div class="msg-item-top"><span class="msg-item-title">训练仪 2 已离线，请检查连接</span><span class="msg-item-time">09:15</span></div><span class="msg-item-type">设备告警</span></div>
+<div class="msg-item"><div class="msg-item-top"><span class="msg-item-title">本周筛查报告已生成</span><span class="msg-item-time">昨天</span></div><span class="msg-item-type">报告通知</span></div>
+<div class="msg-item"><div class="msg-item-top"><span class="msg-item-title">新学期视力评估任务已发布</span><span class="msg-item-time">2天前</span></div><span class="msg-item-type">任务通知</span></div>
+<div class="msg-item"><div class="msg-item-top"><span class="msg-item-title">筛查终端 A 固件更新成功</span><span class="msg-item-time">3天前</span></div><span class="msg-item-type">系统通知</span></div></div>
+<div class="msg-empty" id="msgEmpty" style="display:none"><div class="msg-empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 01-3.46 0"></path></svg></div><span class="msg-empty-text">暂无消息</span></div>
+<div class="msg-footer" id="msgViewAll">查看全部消息</div></div>
+
+<div class="content">
+
+<!-- content header -->
+<div class="content-header">
+  <div class="content-title">视力评估</div>
+  <div class="filter-bar">
+    <select class="form-select" id="schoolYearSelect" style="width:130px">
+      <option value="2025-2026">2025-2026学年</option>
+      <option value="2024-2025">2024-2025学年</option>
+    </select>
+  </div>
+</div>
+
+<!-- main tabs -->
+<div class="main-tabs" id="mainTabs">
+  <button class="main-tab active" data-tab="tabOverview">概览</button>
+  <button class="main-tab" data-tab="tabGrade">年级</button>
+  <button class="main-tab" data-tab="tabClass">班级</button>
+  <button class="main-tab" data-tab="tabStudent">个人</button>
+  <button class="main-tab" data-tab="tabTrend">趋势</button>
+  <button class="main-tab" data-tab="tabDetail">明细</button>
+</div>
+
+<!-- ═══ Tab 1: 概览 ═══ -->
+<div class="tab-panel active" id="tabOverview">
+
+  <!-- Table 1.1: 全量评估指标 -->
+  <div class="assess-card">
+    <div class="assess-card-header">
+      <span class="assess-card-title">全量评估指标</span>
+      <span class="assess-card-subtitle">2025-2026学年 · 数据截至 2026-03-20</span>
+    </div>
+    <div class="assess-table-wrap">
+      <table class="assess-table" id="indicatorTable">
+        <thead><tr>
+          <th style="min-width:140px">指标名称</th>
+          <th style="min-width:90px" class="text-center">本学年</th>
+          <th style="min-width:90px" class="text-center">上学年</th>
+          <th style="min-width:100px" class="text-center">环比变化</th>
+          <th style="min-width:90px" class="text-center">目标值</th>
+          <th style="min-width:70px" class="text-center">达标</th>
+        </tr></thead>
+        <tbody id="indicatorBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Table 1.2: 视力档位分布 -->
+  <div class="assess-card">
+    <div class="assess-card-header">
+      <span class="assess-card-title">视力档位分布</span>
+      <span class="assess-card-subtitle">本学年已检 1,225 人</span>
+    </div>
+    <div class="assess-table-wrap">
+      <table class="assess-table" id="levelTable">
+        <thead><tr>
+          <th style="min-width:60px" class="text-center">档位</th>
+          <th style="min-width:120px" class="text-center">视力范围</th>
+          <th style="min-width:70px" class="text-center">人数</th>
+          <th style="min-width:70px" class="text-center">占比</th>
+          <th style="min-width:70px" class="text-center">上学年占比</th>
+          <th style="min-width:80px" class="text-center">变化</th>
+        </tr></thead>
+        <tbody id="levelBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Tab 2: 年级 ═══ -->
+<div class="tab-panel" id="tabGrade">
+  <div class="assess-card">
+    <div class="assess-card-header">
+      <span class="assess-card-title">年级对比</span>
+      <span class="assess-card-subtitle">点击年级行可下钻查看班级数据</span>
+    </div>
+    <div class="assess-table-wrap">
+      <table class="assess-table" id="gradeTable">
+        <thead><tr>
+          <th style="min-width:70px">年级</th>
+          <th style="min-width:60px" class="text-center">总人数</th>
+          <th style="min-width:60px" class="text-center">已检</th>
+          <th style="min-width:75px" class="text-center">检测覆盖率</th>
+          <th style="min-width:60px" class="text-center">近视人数</th>
+          <th style="min-width:65px" class="text-center">近视率</th>
+          <th style="min-width:65px" class="text-center">平均视力值</th>
+          <th style="min-width:75px" class="text-center">上学年近视率</th>
+          <th style="min-width:60px" class="text-center">变化</th>
+          <th style="min-width:50px" class="text-center">班级数</th>
+        </tr></thead>
+        <tbody id="gradeBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Tab 3: 班级 ═══ -->
+<div class="tab-panel" id="tabClass">
+  <div class="assess-card">
+    <div class="assess-card-header">
+      <span class="assess-card-title">班级排名</span>
+      <div class="filter-bar">
+        <select class="form-select" id="classGradeFilter" style="width:120px">
+          <option value="">全部年级</option>
+          <option value="一年级">一年级</option>
+          <option value="二年级">二年级</option>
+          <option value="三年级">三年级</option>
+          <option value="四年级">四年级</option>
+          <option value="五年级">五年级</option>
+          <option value="六年级">六年级</option>
+        </select>
+        <span class="assess-card-subtitle">默认按近视率降序 · 前5名标红 · 后5名标绿</span>
+      </div>
+    </div>
+    <div class="assess-table-wrap">
+      <table class="assess-table" id="classTable">
+        <thead><tr>
+          <th style="width:45px" class="text-center">排名</th>
+          <th style="min-width:60px">年级</th>
+          <th style="min-width:60px">班级</th>
+          <th style="min-width:55px" class="text-center">总人数</th>
+          <th style="min-width:45px" class="text-center">已检</th>
+          <th style="min-width:65px" class="text-center">近视人数</th>
+          <th style="min-width:65px" class="text-center sortable" data-sort="myopiaRate">近视率 <span class="sort-icon">▼</span></th>
+          <th style="min-width:70px" class="text-center">平均视力值</th>
+          <th style="min-width:75px" class="text-center">上学年近视率</th>
+          <th style="min-width:55px" class="text-center sortable" data-sort="change">变化 <span class="sort-icon">▼</span></th>
+          <th style="min-width:70px" class="text-center">待重测人数</th>
+        </tr></thead>
+        <tbody id="classBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Tab 4: 个人 ═══ -->
+<div class="tab-panel" id="tabStudent">
+  <div class="assess-card">
+    <div class="assess-card-header">
+      <span class="assess-card-title">学生视力查询</span>
+      <div class="filter-bar">
+        <input class="form-search" id="studentSearch" placeholder="搜索健康ID / 姓名..." style="min-width:180px">
+        <select class="form-select" id="studentGradeFilter" style="width:110px">
+          <option value="">全部年级</option>
+        </select>
+        <select class="form-select" id="studentClassFilter" style="width:90px">
+          <option value="">班级</option>
+        </select>
+        <select class="form-select" id="studentLevelFilter" style="width:80px">
+          <option value="">档位</option>
+          <option value="1">1档</option>
+          <option value="2">2档</option>
+          <option value="3">3档</option>
+          <option value="4">4档</option>
+          <option value="5">5档</option>
+        </select>
+        <select class="form-select" id="studentValidFilter" style="width:90px">
+          <option value="">有效性</option>
+          <option value="有效">有效</option>
+          <option value="待重测">待重测</option>
+        </select>
+      </div>
+    </div>
+    <div class="assess-table-wrap">
+      <table class="assess-table" id="studentTable">
+        <thead><tr>
+          <th style="min-width:80px">健康ID</th>
+          <th style="min-width:60px">姓名</th>
+          <th style="min-width:55px">年级</th>
+          <th style="min-width:45px">班级</th>
+          <th style="min-width:35px">性别</th>
+          <th style="min-width:70px" class="text-center">左眼视力值</th>
+          <th style="min-width:70px" class="text-center">右眼视力值</th>
+          <th style="min-width:65px" class="text-center">本次档位</th>
+          <th style="min-width:65px" class="text-center">上次档位</th>
+          <th style="min-width:75px" class="text-center">档位变化</th>
+          <th style="min-width:55px" class="text-center">有效性</th>
+          <th style="min-width:65px" class="text-center">训练完成</th>
+        </tr></thead>
+        <tbody id="studentBody"></tbody>
+      </table>
+    </div>
+    <div class="table-footer">
+      <span class="table-total" id="studentTotal">共 0 条</span>
+      <div class="table-pagination" id="studentPagination"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Tab 5: 趋势 ═══ -->
+<div class="tab-panel" id="tabTrend">
+  <div class="assess-card">
+    <div class="assess-card-header">
+      <span class="assess-card-title">学期近视率趋势</span>
+      <div class="filter-bar">
+        <button class="btn-outline" id="exportTrendBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>导出数据表</button>
+      </div>
+    </div>
+    <div class="assess-table-wrap">
+      <table class="assess-table" id="trendTable">
+        <thead><tr>
+          <th style="min-width:100px">学期</th>
+          <th style="min-width:60px" class="text-center">总人数</th>
+          <th style="min-width:60px" class="text-center">已检人数</th>
+          <th style="min-width:65px" class="text-center">近视人数</th>
+          <th style="min-width:65px" class="text-center">近视率</th>
+          <th style="min-width:70px" class="text-center">平均视力值</th>
+          <th style="min-width:70px" class="text-center">有效检测率</th>
+          <th style="min-width:70px" class="text-center">男生近视率</th>
+          <th style="min-width:70px" class="text-center">女生近视率</th>
+        </tr></thead>
+        <tbody id="trendBody"></tbody>
+      </table>
+    </div>
+    <div style="margin-top:12px;padding:12px 14px;background:rgba(245,158,11,0.08);border-radius:var(--radius-md);font-size:13px;color:var(--warning);display:flex;align-items:center;gap:8px">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="width:16px;height:16px;flex-shrink:0"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+      <span>近视率已连续 3 个学期上升（2024秋 → 本期），增幅 +3.8%，建议关注干预措施效果。</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Tab 6: 明细 ═══ -->
+<div class="tab-panel" id="tabDetail">
+  <div class="assess-card">
+    <div class="assess-card-header">
+      <span class="assess-card-title">检测明细</span>
+      <div class="filter-bar">
+        <input class="form-search" id="detailSearch" placeholder="搜索健康ID..." style="min-width:150px">
+        <select class="form-select" id="detailGradeFilter" style="width:100px">
+          <option value="">年级</option>
+        </select>
+        <select class="form-select" id="detailClassFilter" style="width:80px">
+          <option value="">班级</option>
+        </select>
+        <select class="form-select" id="detailGenderFilter" style="width:70px">
+          <option value="">性别</option>
+          <option value="男">男</option>
+          <option value="女">女</option>
+        </select>
+        <select class="form-select" id="detailValidFilter" style="width:90px">
+          <option value="">有效性</option>
+          <option value="有效">有效</option>
+          <option value="待重测">待重测</option>
+        </select>
+        <select class="form-select" id="detailAbnormalFilter" style="width:90px">
+          <option value="">异常类型</option>
+          <option value="—">无异常</option>
+          <option value="眯眼">眯眼</option>
+          <option value="多人">多人</option>
+          <option value="遮挡">遮挡</option>
+        </select>
+        <button class="btn-outline" id="exportDetailBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>导出Excel</button>
+      </div>
+    </div>
+    <div class="assess-table-wrap">
+      <table class="assess-table" id="detailTable">
+        <thead><tr>
+          <th class="check-col"><input type="checkbox" id="detailSelectAll"></th>
+          <th style="min-width:80px">健康ID</th>
+          <th style="min-width:55px">姓名</th>
+          <th style="min-width:50px">年级</th>
+          <th style="min-width:45px">班级</th>
+          <th style="min-width:35px">性别</th>
+          <th style="min-width:90px" class="sortable" data-sort="date">检测时间 <span class="sort-icon">▼</span></th>
+          <th style="min-width:65px" class="text-center">左眼视力值</th>
+          <th style="min-width:65px" class="text-center">右眼视力值</th>
+          <th style="min-width:55px" class="text-center">本次档位</th>
+          <th style="min-width:55px" class="text-center">上次档位</th>
+          <th style="min-width:45px" class="text-center">档位变化</th>
+          <th style="min-width:55px" class="text-center">有效性评分</th>
+          <th style="min-width:55px" class="text-center">异常类型</th>
+          <th style="min-width:80px">备注</th>
+        </tr></thead>
+        <tbody id="detailBody"></tbody>
+      </table>
+    </div>
+    <div class="table-footer">
+      <span class="table-total" id="detailTotal">共 0 条</span>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-size:12px;color:var(--muted-light)" id="detailSelectedCount">已选 0 条</span>
+        <div class="table-pagination" id="detailPagination"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /content -->
+</div><!-- /main-wrap -->
+
+<!-- modal overlay: student detail -->
+<div class="modal-overlay" id="studentModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title" id="modalStudentName">学生视力趋势</span>
+      <button class="modal-close" id="modalClose"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+    </div>
+    <div class="assess-table-wrap">
+      <table class="assess-table" id="modalHistoryTable">
+        <thead><tr>
+          <th>检测日期</th>
+          <th class="text-center">左眼</th>
+          <th class="text-center">右眼</th>
+          <th class="text-center">档位</th>
+          <th class="text-center">有效性</th>
+        </tr></thead>
+        <tbody id="modalHistoryBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── Data ──────────────────────────────────────────────────────
+const indicatorData = [
+  { name:'全校近视率', thisYear:'42.3%', lastYear:'41.8%', target:'≤40%', get pass(){return this.thisYear.replace('%','')*1 <= this.target.replace('%','')*1 ? '✓ 达标' : '✗ 未达标'} },
+  { name:'检测覆盖率', thisYear:'97.2%', lastYear:'96.4%', target:'≥98%', get pass(){return this.thisYear.replace('%','')*1 >= this.target.replace('%','')*1 ? '✓ 达标' : '✗ 未达标'} },
+  { name:'平均视力值', thisYear:'4.86', lastYear:'4.88', target:'≥4.90', get pass(){return this.thisYear*1 >= this.target.replace('≥','')*1 ? '✓ 达标' : '✗ 未达标'} },
+  { name:'有效检测率', thisYear:'96.8%', lastYear:'96.1%', target:'≥97%', get pass(){return this.thisYear.replace('%','')*1 >= this.target.replace('%','')*1 ? '✓ 达标' : '✗ 未达标'} },
+  { name:'待重测人数', thisYear:'39', lastYear:'48', target:'≤30', get pass(){return this.thisYear*1 <= this.target.replace('≤','')*1 ? '✓ 达标' : '✗ 未达标'} },
+  { name:'未检测人数', thisYear:'35', lastYear:'45', target:'≤20', get pass(){return this.thisYear*1 <= this.target.replace('≤','')*1 ? '✓ 达标' : '✗ 未达标'} },
+  { name:'男生近视率', thisYear:'39.8%', lastYear:'38.8%', target:'≤38%', get pass(){return this.thisYear.replace('%','')*1 <= this.target.replace('%','')*1 ? '✓ 达标' : '✗ 未达标'} },
+  { name:'女生近视率', thisYear:'44.9%', lastYear:'44.2%', target:'≤42%', get pass(){return this.thisYear.replace('%','')*1 <= this.target.replace('%','')*1 ? '✓ 达标' : '✗ 未达标'} },
+  { name:'男女近视率差异', thisYear:'5.1%', lastYear:'5.4%', target:'≤5%', get pass(){return this.thisYear.replace('%','')*1 <= this.target.replace('%','')*1 ? '✓ 达标' : '✗ 未达标'} },
+  { name:'双眼差异≥2行人数', thisYear:'28', lastYear:'25', target:'≤20', get pass(){return this.thisYear*1 <= this.target.replace('≤','')*1 ? '✓ 达标' : '✗ 未达标'} }
+];
+
+const levelData = [
+  { level:1, range:'≥5.0', count:320, pct:'26.1%', lastPct:'24.8%' },
+  { level:2, range:'4.9',  count:268, pct:'21.9%', lastPct:'22.3%' },
+  { level:3, range:'4.8',  count:312, pct:'25.5%', lastPct:'26.1%' },
+  { level:4, range:'4.6-4.7', count:195, pct:'15.9%', lastPct:'15.2%' },
+  { level:5, range:'≤4.5', count:130, pct:'10.6%', lastPct:'11.6%' }
+];
+
+const gradeData = [
+  { name:'一年级', total:210, checked:208, cov:'99.0%', myopia:52, rate:'25.0%', avg:'5.05', lastRate:'23.8%', change:'+1.2%', classes:5 },
+  { name:'二年级', total:205, checked:200, cov:'97.6%', myopia:70, rate:'35.0%', avg:'4.95', lastRate:'31.5%', change:'+3.5%', classes:5 },
+  { name:'三年级', total:215, checked:210, cov:'97.7%', myopia:88, rate:'41.9%', avg:'4.89', lastRate:'41.1%', change:'+0.8%', classes:5 },
+  { name:'四年级', total:208, checked:200, cov:'96.2%', myopia:100, rate:'50.0%', avg:'4.80', lastRate:'48.0%', change:'+2.0%', classes:5 },
+  { name:'五年级', total:218, checked:212, cov:'97.2%', myopia:120, rate:'56.6%', avg:'4.75', lastRate:'52.5%', change:'+4.1%', classes:5 },
+  { name:'六年级', total:204, checked:195, cov:'95.6%', myopia:124, rate:'63.6%', avg:'4.68', lastRate:'62.1%', change:'+1.5%', classes:5 }
+];
+
+const classData = [
+  { rank:1,  grade:'六年级', cls:'3班', total:42, checked:42, myopia:27, rate:'64.3%', avg:'4.65', lastRate:'60.5%', change:'+3.8%', retest:2 },
+  { rank:2,  grade:'六年级', cls:'1班', total:40, checked:38, myopia:24, rate:'63.2%', avg:'4.68', lastRate:'61.2%', change:'+2.0%', retest:1 },
+  { rank:3,  grade:'五年级', cls:'4班', total:44, checked:43, myopia:27, rate:'62.8%', avg:'4.70', lastRate:'58.0%', change:'+4.8%', retest:3 },
+  { rank:4,  grade:'六年级', cls:'2班', total:42, checked:40, myopia:26, rate:'65.0%', avg:'4.66', lastRate:'62.5%', change:'+2.5%', retest:2 },
+  { rank:5,  grade:'五年级', cls:'3班', total:43, checked:42, myopia:26, rate:'61.9%', avg:'4.71', lastRate:'57.5%', change:'+4.4%', retest:1 },
+  { rank:6,  grade:'六年级', cls:'5班', total:40, checked:38, myopia:23, rate:'60.5%', avg:'4.72', lastRate:'59.0%', change:'+1.5%', retest:0 },
+  { rank:7,  grade:'六年级', cls:'4班', total:40, checked:39, myopia:23, rate:'59.0%', avg:'4.73', lastRate:'58.0%', change:'+1.0%', retest:1 },
+  { rank:8,  grade:'五年级', cls:'2班', total:45, checked:43, myopia:25, rate:'58.1%', avg:'4.74', lastRate:'55.0%', change:'+3.1%', retest:2 },
+  { rank:9,  grade:'五年级', cls:'5班', total:43, checked:42, myopia:24, rate:'57.1%', avg:'4.76', lastRate:'53.5%', change:'+3.6%', retest:1 },
+  { rank:10, grade:'五年级', cls:'1班', total:43, checked:42, myopia:24, rate:'57.1%', avg:'4.75', lastRate:'54.0%', change:'+3.1%', retest:2 },
+  { rank:11, grade:'四年级', cls:'3班', total:42, checked:40, myopia:21, rate:'52.5%', avg:'4.78', lastRate:'50.0%', change:'+2.5%', retest:1 },
+  { rank:12, grade:'四年级', cls:'5班', total:41, checked:40, myopia:20, rate:'50.0%', avg:'4.80', lastRate:'48.5%', change:'+1.5%', retest:0 },
+  { rank:13, grade:'四年级', cls:'1班', total:42, checked:40, myopia:20, rate:'50.0%', avg:'4.81', lastRate:'49.0%', change:'+1.0%', retest:1 },
+  { rank:14, grade:'四年级', cls:'2班', total:42, checked:40, myopia:20, rate:'50.0%', avg:'4.79', lastRate:'47.5%', change:'+2.5%', retest:1 },
+  { rank:15, grade:'四年级', cls:'4班', total:41, checked:40, myopia:19, rate:'47.5%', avg:'4.82', lastRate:'46.0%', change:'+1.5%', retest:0 },
+  { rank:16, grade:'三年级', cls:'4班', total:43, checked:42, myopia:18, rate:'42.9%', avg:'4.87', lastRate:'42.0%', change:'+0.9%', retest:1 },
+  { rank:17, grade:'三年级', cls:'1班', total:43, checked:42, myopia:18, rate:'42.9%', avg:'4.88', lastRate:'41.5%', change:'+1.4%', retest:0 },
+  { rank:18, grade:'三年级', cls:'3班', total:43, checked:42, myopia:18, rate:'42.9%', avg:'4.88', lastRate:'41.0%', change:'+1.9%', retest:1 },
+  { rank:19, grade:'三年级', cls:'5班', total:43, checked:42, myopia:17, rate:'40.5%', avg:'4.90', lastRate:'40.0%', change:'+0.5%', retest:0 },
+  { rank:20, grade:'三年级', cls:'2班', total:43, checked:42, myopia:17, rate:'40.5%', avg:'4.89', lastRate:'40.0%', change:'+0.5%', retest:1 },
+  { rank:21, grade:'二年级', cls:'2班', total:41, checked:40, myopia:15, rate:'37.5%', avg:'4.92', lastRate:'33.5%', change:'+4.0%', retest:1 },
+  { rank:22, grade:'二年级', cls:'4班', total:41, checked:40, myopia:14, rate:'35.0%', avg:'4.94', lastRate:'32.0%', change:'+3.0%', retest:0 },
+  { rank:23, grade:'二年级', cls:'5班', total:41, checked:40, myopia:14, rate:'35.0%', avg:'4.93', lastRate:'31.5%', change:'+3.5%', retest:1 },
+  { rank:24, grade:'二年级', cls:'1班', total:41, checked:40, myopia:14, rate:'35.0%', avg:'4.95', lastRate:'31.0%', change:'+4.0%', retest:0 },
+  { rank:25, grade:'二年级', cls:'3班', total:41, checked:40, myopia:13, rate:'32.5%', avg:'4.96', lastRate:'30.0%', change:'+2.5%', retest:1 },
+  { rank:26, grade:'一年级', cls:'5班', total:42, checked:42, myopia:11, rate:'26.2%', avg:'5.03', lastRate:'24.0%', change:'+2.2%', retest:0 },
+  { rank:27, grade:'一年级', cls:'2班', total:42, checked:42, myopia:11, rate:'26.2%', avg:'5.04', lastRate:'24.0%', change:'+2.2%', retest:0 },
+  { rank:28, grade:'一年级', cls:'1班', total:42, checked:42, myopia:10, rate:'23.8%', avg:'5.08', lastRate:'22.1%', change:'+1.7%', retest:0 },
+  { rank:29, grade:'一年级', cls:'4班', total:41, checked:40, myopia:10, rate:'25.0%', avg:'5.05', lastRate:'23.5%', change:'+1.5%', retest:1 },
+  { rank:30, grade:'一年级', cls:'3班', total:43, checked:43, myopia:11, rate:'25.6%', avg:'5.04', lastRate:'24.0%', change:'+1.6%', retest:0 }
+];
+
+const trendData = [
+  { term:'2024秋', total:1260, checked:1180, myopia:454, rate:'38.5%', avg:'4.93', validRate:'95.2%', male:'36.1%', female:'40.8%' },
+  { term:'2025春', total:1260, checked:1200, myopia:482, rate:'40.2%', avg:'4.91', validRate:'95.8%', male:'37.5%', female:'42.9%' },
+  { term:'2025秋', total:1255, checked:1215, myopia:508, rate:'41.8%', avg:'4.88', validRate:'96.1%', male:'38.8%', female:'44.2%' },
+  { term:'2026春（本期）', total:1260, checked:1225, myopia:518, rate:'42.3%', avg:'4.86', validRate:'96.8%', male:'39.8%', female:'44.9%' }
+];
+
+const studentsRaw = [
+  { id:'H20260001', name:'张**', grade:'三年级', cls:'1班', gender:'男', leftEye:4.8, rightEye:4.8, level:3, lastLevel:2, valid:'有效', train:'已完成' },
+  { id:'H20260002', name:'李**', grade:'三年级', cls:'1班', gender:'女', leftEye:5.2, rightEye:5.1, level:1, lastLevel:1, valid:'有效', train:'已完成' },
+  { id:'H20260003', name:'王**', grade:'四年级', cls:'2班', gender:'男', leftEye:4.5, rightEye:4.8, level:5, lastLevel:4, valid:'有效', train:'未完成' },
+  { id:'H20260004', name:'赵**', grade:'四年级', cls:'2班', gender:'女', leftEye:'—', rightEye:'—', level:'—', lastLevel:2, valid:'待重测', train:'未完成' },
+  { id:'H20260005', name:'陈**', grade:'一年级', cls:'3班', gender:'男', leftEye:5.2, rightEye:5.2, level:1, lastLevel:1, valid:'有效', train:'已完成' },
+  { id:'H20260006', name:'刘**', grade:'一年级', cls:'1班', gender:'女', leftEye:5.1, rightEye:5.0, level:1, lastLevel:1, valid:'有效', train:'已完成' },
+  { id:'H20260007', name:'孙**', grade:'一年级', cls:'2班', gender:'女', leftEye:5.0, rightEye:5.0, level:1, lastLevel:2, valid:'有效', train:'未完成' },
+  { id:'H20260008', name:'周**', grade:'二年级', cls:'1班', gender:'男', leftEye:4.9, rightEye:4.8, level:2, lastLevel:2, valid:'有效', train:'已完成' },
+  { id:'H20260009', name:'吴**', grade:'二年级', cls:'2班', gender:'女', leftEye:4.8, rightEye:4.7, level:3, lastLevel:2, valid:'有效', train:'已完成' },
+  { id:'H20260010', name:'郑**', grade:'二年级', cls:'3班', gender:'男', leftEye:4.7, rightEye:4.6, level:3, lastLevel:3, valid:'有效', train:'未完成' },
+  { id:'H20260011', name:'冯**', grade:'三年级', cls:'2班', gender:'女', leftEye:4.9, rightEye:4.8, level:2, lastLevel:2, valid:'有效', train:'已完成' },
+  { id:'H20260012', name:'褚**', grade:'三年级', cls:'3班', gender:'男', leftEye:4.6, rightEye:4.7, level:3, lastLevel:3, valid:'有效', train:'未完成' },
+  { id:'H20260013', name:'卫**', grade:'三年级', cls:'4班', gender:'女', leftEye:5.0, rightEye:5.0, level:1, lastLevel:1, valid:'有效', train:'已完成' },
+  { id:'H20260014', name:'蒋**', grade:'四年级', cls:'1班', gender:'男', leftEye:4.7, rightEye:4.8, level:3, lastLevel:3, valid:'有效', train:'已完成' },
+  { id:'H20260015', name:'沈**', grade:'四年级', cls:'3班', gender:'女', leftEye:4.4, rightEye:4.5, level:5, lastLevel:5, valid:'有效', train:'未完成' },
+  { id:'H20260016', name:'韩**', grade:'四年级', cls:'4班', gender:'男', leftEye:4.8, rightEye:4.9, level:2, lastLevel:3, valid:'有效', train:'已完成' },
+  { id:'H20260017', name:'杨**', grade:'五年级', cls:'1班', gender:'女', leftEye:4.6, rightEye:4.5, level:4, lastLevel:4, valid:'有效', train:'已完成' },
+  { id:'H20260018', name:'朱**', grade:'五年级', cls:'2班', gender:'男', leftEye:4.5, rightEye:4.4, level:5, lastLevel:4, valid:'待重测', train:'未完成' },
+  { id:'H20260019', name:'秦**', grade:'五年级', cls:'3班', gender:'女', leftEye:4.7, rightEye:4.6, level:3, lastLevel:3, valid:'有效', train:'已完成' },
+  { id:'H20260020', name:'尤**', grade:'五年级', cls:'4班', gender:'男', leftEye:4.8, rightEye:4.7, level:3, lastLevel:2, valid:'有效', train:'未完成' },
+  { id:'H20260021', name:'许**', grade:'六年级', cls:'1班', gender:'女', leftEye:4.5, rightEye:4.3, level:5, lastLevel:4, valid:'有效', train:'已完成' },
+  { id:'H20260022', name:'何**', grade:'六年级', cls:'2班', gender:'男', leftEye:4.6, rightEye:4.5, level:4, lastLevel:4, valid:'有效', train:'未完成' },
+  { id:'H20260023', name:'吕**', grade:'六年级', cls:'3班', gender:'女', leftEye:4.4, rightEye:4.2, level:5, lastLevel:5, valid:'有效', train:'已完成' },
+  { id:'H20260024', name:'施**', grade:'六年级', cls:'4班', gender:'男', leftEye:4.7, rightEye:4.6, level:3, lastLevel:3, valid:'有效', train:'已完成' },
+  { id:'H20260025', name:'张**', grade:'六年级', cls:'5班', gender:'女', leftEye:4.3, rightEye:4.4, level:5, lastLevel:5, valid:'待重测', train:'未完成' }
+];
+
+const detailData = studentsRaw.map((s,i) => {
+  const abnormalList = ['—','眯眼','多人','遮挡'];
+  const noteList = ['—','同一轮检测2次异常','—','—','—'];
+  return {
+    id:s.id, name:s.name, grade:s.grade, cls:s.cls, gender:s.gender,
+    date:['2026-03-15','2026-03-15','2026-03-16','2026-03-16','2026-03-14','2026-03-14','2026-03-14','2026-03-15','2026-03-15','2026-03-15','2026-03-16','2026-03-16','2026-03-16','2026-03-17','2026-03-17','2026-03-17','2026-03-18','2026-03-18','2026-03-18','2026-03-18','2026-03-19','2026-03-19','2026-03-19','2026-03-20','2026-03-20'][i],
+    leftEye:s.leftEye, rightEye:s.rightEye, level:s.level, lastLevel:s.lastLevel,
+    valid:s.valid,
+    abnormal: s.valid === '待重测' ? (i===3?'多人':'眯眼') : '—',
+    note: i===3?'同一轮检测2次异常':'—',
+    round: 1
+  };
+});
+
+// ─── Utilities ─────────────────────────────────────────────────
+function calcChange(thisVal, lastVal) {
+  const t = parseFloat(thisVal), l = parseFloat(lastVal);
+  if (isNaN(t)||isNaN(l)) return { diff:'—', cls:'trend-flat' };
+  const diff = t - l;
+  const sign = diff > 0 ? '+' : '';
+  return { diff: sign + diff.toFixed(1), cls: diff > 0 ? 'trend-up' : diff < 0 ? 'trend-down' : 'trend-flat' };
+}
+
+function pctChangeStr(thisStr, lastStr) {
+  const t = parseFloat(thisStr), l = parseFloat(lastStr);
+  if (isNaN(t)||isNaN(l)) return '<span class="trend-flat">—</span>';
+  const diff = t - l;
+  const sign = diff > 0 ? '+' : '';
+  const cls = diff > 0 ? 'trend-up' : diff < 0 ? 'trend-down' : 'trend-flat';
+  return `<span class="${cls}">${sign}${diff.toFixed(1)}%</span>`;
+}
+
+function levelDiffStr(curr, last) {
+  if (curr === '—' || last === '—') return '<span class="trend-flat">—</span>';
+  const d = curr - last;
+  if (d > 0) return `<span class="trend-down">-${d}(下降)</span>`;
+  if (d < 0) return `<span class="trend-up">+${Math.abs(d)}(上升)</span>`;
+  return '<span class="trend-flat">=(持平)</span>';
+}
+
+function getLevelClass(l) {
+  if (l === '—') return '';
+  const n = parseInt(l);
+  return 'level-badge l' + n;
+}
+
+function getLevelDot(l) {
+  if (l === '—') return '';
+  const n = parseInt(l);
+  return `<span class="level-dot l${n}"></span>`;
+}
+
+// ─── Render Functions ──────────────────────────────────────────
+
+function renderIndicator() {
+  const tbody = document.getElementById('indicatorBody');
+  tbody.innerHTML = indicatorData.map(d => {
+    const ch = calcChange(d.thisYear, d.lastYear);
+    const passCls = d.pass.startsWith('✓') ? 'trend-up' : 'trend-down';
+    return `<tr>
+      <td style="font-weight:500">${d.name}</td>
+      <td class="text-center">${d.thisYear}</td>
+      <td class="text-center">${d.lastYear}</td>
+      <td class="text-center"><span class="${ch.cls}">${ch.diff}${d.thisYear.includes('%')?'%':''}</span></td>
+      <td class="text-center">${d.target}</td>
+      <td class="text-center"><span class="${passCls}" style="font-weight:600">${d.pass}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderLevel() {
+  const tbody = document.getElementById('levelBody');
+  const total = levelData.reduce((s,d)=>s+d.count,0);
+  tbody.innerHTML = levelData.map(d => {
+    const ch = calcChange(d.pct, d.lastPct);
+    return `<tr>
+      <td class="text-center">${getLevelDot(d.level)}${d.level}档</td>
+      <td class="text-center" style="font-family:'Geist Mono',monospace">${d.range}</td>
+      <td class="text-center">${d.count}</td>
+      <td class="text-center">${d.pct}</td>
+      <td class="text-center">${d.lastPct}</td>
+      <td class="text-center"><span class="${ch.cls}">${ch.diff}%</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderGrade() {
+  const tbody = document.getElementById('gradeBody');
+  tbody.innerHTML = gradeData.map(d => {
+    const chCls = parseFloat(d.change) > 3 ? 'trend-up' : 'trend-down';
+    return `<tr style="cursor:pointer" data-grade="${d.name}">
+      <td style="font-weight:500">${d.name}</td>
+      <td class="text-center">${d.total}</td>
+      <td class="text-center">${d.checked}</td>
+      <td class="text-center">${d.cov}</td>
+      <td class="text-center">${d.myopia}</td>
+      <td class="text-center" style="font-weight:600">${d.rate}</td>
+      <td class="text-center">${d.avg}</td>
+      <td class="text-center">${d.lastRate}</td>
+      <td class="text-center"><span class="${chCls}">${d.change}</span></td>
+      <td class="text-center">${d.classes}</td>
+    </tr>`;
+  }).join('');
+  // click to switch to class tab
+  tbody.querySelectorAll('tr[data-grade]').forEach(tr => {
+    tr.addEventListener('click', () => {
+      const grade = tr.dataset.grade;
+      document.getElementById('classGradeFilter').value = grade;
+      switchTab('tabClass');
+      renderClass(grade);
+    });
+  });
+}
+
+let classSortKey = 'myopiaRate';
+let classSortDir = -1;
+
+function renderClass(gradeFilter) {
+  let data = [...classData];
+  if (gradeFilter) data = data.filter(d => d.grade === gradeFilter);
+  // sort
+  data.sort((a,b) => {
+    let va = a[classSortKey], vb = b[classSortKey];
+    if (typeof va === 'string') {
+      va = parseFloat(va) || 0;
+      vb = parseFloat(vb) || 0;
+    }
+    return (va - vb) * classSortDir;
+  });
+  // re-rank
+  data.forEach((d,i) => d.rank = i+1);
+  const tbody = document.getElementById('classBody');
+  tbody.innerHTML = data.map((d,i) => {
+    const chCls = d.change.startsWith('+') && parseFloat(d.change) > 3 ? 'trend-up' : 'trend-down';
+    const rowCls = i < 5 ? 'row-highlight-top5' : (i >= data.length - 5 ? 'row-highlight-bottom5' : '');
+    return `<tr class="${rowCls}">
+      <td class="text-center" style="font-weight:600">${d.rank}</td>
+      <td>${d.grade}</td>
+      <td>${d.cls}</td>
+      <td class="text-center">${d.total}</td>
+      <td class="text-center">${d.checked}</td>
+      <td class="text-center">${d.myopia}</td>
+      <td class="text-center" style="font-weight:600">${d.rate}</td>
+      <td class="text-center">${d.avg}</td>
+      <td class="text-center">${d.lastRate}</td>
+      <td class="text-center"><span class="${chCls}">${d.change}</span></td>
+      <td class="text-center">${d.retest}</td>
+    </tr>`;
+  }).join('');
+  // update sort icons
+  document.querySelectorAll('#classTable th.sortable').forEach(th => {
+    const key = th.dataset.sort;
+    const icon = th.querySelector('.sort-icon');
+    if (key === classSortKey) {
+      icon.textContent = classSortDir === -1 ? '▼' : '▲';
+    } else {
+      icon.textContent = '▼';
+    }
+  });
+}
+
+function renderTrend() {
+  const tbody = document.getElementById('trendBody');
+  tbody.innerHTML = trendData.map((d,i) => {
+    const isCurrent = i === trendData.length - 1;
+    return `<tr class="${isCurrent ? 'row-current-term' : ''}">
+      <td style="font-weight:${isCurrent?'600':'400'}">${d.term}</td>
+      <td class="text-center">${d.total}</td>
+      <td class="text-center">${d.checked}</td>
+      <td class="text-center">${d.myopia}</td>
+      <td class="text-center" style="font-weight:600;color:${isCurrent?'var(--fg)':'var(--muted)'}">${d.rate}</td>
+      <td class="text-center">${d.avg}</td>
+      <td class="text-center">${d.validRate}</td>
+      <td class="text-center">${d.male}</td>
+      <td class="text-center">${d.female}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── Student Tab ───────────────────────────────────────────────
+let studentPage = 1;
+const STUDENT_PAGE_SIZE = 10;
+
+function renderStudent() {
+  const search = document.getElementById('studentSearch').value.trim().toLowerCase();
+  const gradeF = document.getElementById('studentGradeFilter').value;
+  const clsF = document.getElementById('studentClassFilter').value;
+  const levelF = document.getElementById('studentLevelFilter').value;
+  const validF = document.getElementById('studentValidFilter').value;
+
+  let data = studentsRaw.filter(s => {
+    if (search && !s.id.toLowerCase().includes(search) && !s.name.includes(search)) return false;
+    if (gradeF && s.grade !== gradeF) return false;
+    if (clsF && s.cls !== clsF) return false;
+    if (levelF && s.level != levelF) return false;
+    if (validF && s.valid !== validF) return false;
+    return true;
+  });
+
+  const total = data.length;
+  const maxPage = Math.max(1, Math.ceil(total / STUDENT_PAGE_SIZE));
+  if (studentPage > maxPage) studentPage = maxPage;
+  const start = (studentPage - 1) * STUDENT_PAGE_SIZE;
+  const pageData = data.slice(start, start + STUDENT_PAGE_SIZE);
+
+  const tbody = document.getElementById('studentBody');
+  tbody.innerHTML = pageData.map(s => {
+    const ld = levelDiffStr(s.level, s.lastLevel);
+    return `<tr style="cursor:pointer" data-id="${s.id}">
+      <td style="font-family:'Geist Mono',monospace;font-size:12px">${s.id}</td>
+      <td>${s.name}</td>
+      <td>${s.grade}</td>
+      <td>${s.cls}</td>
+      <td>${s.gender}</td>
+      <td class="text-center">${s.leftEye}</td>
+      <td class="text-center">${s.rightEye}</td>
+      <td class="text-center"><span class="${getLevelClass(s.level)}">${s.level}档</span></td>
+      <td class="text-center">${s.lastLevel}档</td>
+      <td class="text-center">${ld}</td>
+      <td class="text-center"><span class="status-badge ${s.valid==='有效'?'valid':'retest'}">${s.valid}</span></td>
+      <td class="text-center"><span class="status-badge ${s.train==='已完成'?'done':'pending'}">${s.train}</span></td>
+    </tr>`;
+  }).join('');
+
+  // click to show modal
+  tbody.querySelectorAll('tr[data-id]').forEach(tr => {
+    tr.addEventListener('click', () => {
+      const id = tr.dataset.id;
+      const s = studentsRaw.find(x => x.id === id);
+      if (!s) return;
+      document.getElementById('modalStudentName').textContent = s.name + ' · 视力趋势';
+      const htbody = document.getElementById('modalHistoryBody');
+      // mock history
+      const history = [
+        { date:'2026-03-15', left:s.leftEye, right:s.rightEye, level:s.level, valid:s.valid },
+        { date:'2025-12-10', left:typeof s.leftEye==='number'? (s.leftEye + 0.1).toFixed(1):'—', right:typeof s.rightEye==='number'? (s.rightEye + 0.1).toFixed(1):'—', level:Math.max(1,typeof s.level==='number'? s.level-1:1), valid:'有效' },
+        { date:'2025-09-05', left:typeof s.leftEye==='number'? (s.leftEye + 0.2).toFixed(1):'—', right:typeof s.rightEye==='number'? (s.rightEye + 0.2).toFixed(1):'—', level:Math.max(1,typeof s.level==='number'? s.level-2:1), valid:'有效' }
+      ];
+      htbody.innerHTML = history.map(h => `<tr>
+        <td>${h.date}</td>
+        <td class="text-center">${h.left}</td>
+        <td class="text-center">${h.right}</td>
+        <td class="text-center"><span class="${getLevelClass(h.level)}">${h.level}档</span></td>
+        <td class="text-center"><span class="status-badge ${h.valid==='有效'?'valid':'retest'}">${h.valid}</span></td>
+      </tr>`).join('');
+      document.getElementById('studentModal').classList.add('open');
+    });
+  });
+
+  document.getElementById('studentTotal').textContent = '共 ' + total + ' 条';
+  renderPagination('studentPagination', studentPage, maxPage, (p) => { studentPage = p; renderStudent(); });
+}
+
+// ─── Detail Tab ────────────────────────────────────────────────
+let detailPage = 1;
+const DETAIL_PAGE_SIZE = 15;
+let detailSortKey = 'date';
+let detailSortDir = -1;
+
+function renderDetail() {
+  const search = document.getElementById('detailSearch').value.trim().toLowerCase();
+  const gradeF = document.getElementById('detailGradeFilter').value;
+  const clsF = document.getElementById('detailClassFilter').value;
+  const genderF = document.getElementById('detailGenderFilter').value;
+  const validF = document.getElementById('detailValidFilter').value;
+  const abnormalF = document.getElementById('detailAbnormalFilter').value;
+
+  let data = detailData.filter(d => {
+    if (search && !d.id.toLowerCase().includes(search)) return false;
+    if (gradeF && d.grade !== gradeF) return false;
+    if (clsF && d.cls !== clsF) return false;
+    if (genderF && d.gender !== genderF) return false;
+    if (validF && d.valid !== validF) return false;
+    if (abnormalF && d.abnormal !== abnormalF) return false;
+    return true;
+  });
+
+  // sort
+  data.sort((a,b) => {
+    let va = a[detailSortKey], vb = b[detailSortKey];
+    if (typeof va === 'string' && detailSortKey === 'date') {
+      va = new Date(va).getTime();
+      vb = new Date(vb).getTime();
+    }
+    if (va === '—') va = -Infinity;
+    if (vb === '—') vb = -Infinity;
+    return (va - vb) * detailSortDir;
+  });
+
+  const total = data.length;
+  const maxPage = Math.max(1, Math.ceil(total / DETAIL_PAGE_SIZE));
+  if (detailPage > maxPage) detailPage = maxPage;
+  const start = (detailPage - 1) * DETAIL_PAGE_SIZE;
+  const pageData = data.slice(start, start + DETAIL_PAGE_SIZE);
+
+  const tbody = document.getElementById('detailBody');
+  tbody.innerHTML = pageData.map(d => {
+    const ld = levelDiffStr(d.level, d.lastLevel);
+    const validCls = d.valid === '有效' ? 'valid' : 'retest';
+    return `<tr>
+      <td class="check-col"><input type="checkbox" class="detail-check" data-id="${d.id}"></td>
+      <td style="font-family:'Geist Mono',monospace;font-size:12px">${d.id}</td>
+      <td>${d.name}</td>
+      <td>${d.grade}</td>
+      <td>${d.cls}</td>
+      <td>${d.gender}</td>
+      <td>${d.date}</td>
+      <td class="text-center">${d.leftEye}</td>
+      <td class="text-center">${d.rightEye}</td>
+      <td class="text-center">${d.level !== '—' ? `<span class="${getLevelClass(d.level)}">${d.level}档</span>` : '—'}</td>
+      <td class="text-center">${d.lastLevel}档</td>
+      <td class="text-center">${ld}</td>
+      <td class="text-center"><span class="status-badge ${validCls}">${d.valid}</span></td>
+      <td class="text-center">${d.abnormal}</td>
+      <td>${d.note}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('detailTotal').textContent = '共 ' + total + ' 条';
+  updateSelectedCount();
+  renderPagination('detailPagination', detailPage, maxPage, (p) => { detailPage = p; renderDetail(); });
+
+  // sort icons
+  document.querySelectorAll('#detailTable th.sortable').forEach(th => {
+    const key = th.dataset.sort;
+    const icon = th.querySelector('.sort-icon');
+    if (key === detailSortKey) {
+      icon.textContent = detailSortDir === -1 ? '▼' : '▲';
+    } else {
+      icon.textContent = '▼';
+    }
+  });
+}
+
+// ─── Pagination ────────────────────────────────────────────────
+const paginationCallbacks = {};
+
+function renderPagination(containerId, page, maxPage, onPage) {
+  const el = document.getElementById(containerId);
+  if (maxPage <= 1) { el.innerHTML = ''; return; }
+  const cbKey = containerId + '_cb';
+  paginationCallbacks[cbKey] = onPage;
+  let html = '';
+  html += `<button class="page-btn" data-cb="${cbKey}" data-page="${page-1}" ${page<=1?'disabled':''}>‹</button>`;
+  for (let i = Math.max(1, page-2); i <= Math.min(maxPage, page+2); i++) {
+    html += `<button class="page-btn ${i===page?'active' :''}" data-cb="${cbKey}" data-page="${i}">${i}</button>`;
+  }
+  html += `<button class="page-btn" data-cb="${cbKey}" data-page="${page+1}" ${page>=maxPage?'disabled':''}>›</button>`;
+  el.innerHTML = html;
+  el.querySelectorAll('.page-btn[data-cb]').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const cb = paginationCallbacks[this.dataset.cb];
+      const pg = parseInt(this.dataset.page);
+      if (cb) cb(pg);
+    });
+  });
+}
+
+// ─── Select All / Count ────────────────────────────────────────
+function updateSelectedCount() {
+  const checked = document.querySelectorAll('.detail-check:checked').length;
+  document.getElementById('detailSelectedCount').textContent = '已选 ' + checked + ' 条';
+}
+
+// ─── Tab Switching ─────────────────────────────────────────────
+function switchTab(tabId) {
+  document.querySelectorAll('.main-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tabId));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === tabId));
+}
+
+// ─── Grade Filter → Class Tab ──────────────────────────────────
+document.getElementById('classGradeFilter').addEventListener('change', function() {
+  renderClass(this.value);
+});
+
+// ─── Student Filter Events ─────────────────────────────────────
+['studentSearch','studentGradeFilter','studentClassFilter','studentLevelFilter','studentValidFilter'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input change', () => { studentPage = 1; renderStudent(); });
+});
+
+// ─── Detail Filter Events ──────────────────────────────────────
+['detailSearch','detailGradeFilter','detailClassFilter','detailGenderFilter','detailValidFilter','detailAbnormalFilter'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input change', () => { detailPage = 1; renderDetail(); });
+});
+
+// ─── Sortable headers ─────────────────────────────────────────
+document.querySelectorAll('#classTable th.sortable').forEach(th => {
+  th.addEventListener('click', function() {
+    const key = this.dataset.sort;
+    if (key === classSortKey) classSortDir *= -1;
+    else { classSortKey = key; classSortDir = -1; }
+    renderClass(document.getElementById('classGradeFilter').value);
+  });
+});
+
+document.querySelectorAll('#detailTable th.sortable').forEach(th => {
+  th.addEventListener('click', function() {
+    const key = this.dataset.sort;
+    if (key === detailSortKey) detailSortDir *= -1;
+    else { detailSortKey = key; detailSortDir = -1; }
+    renderDetail();
+  });
+});
+
+// ─── Select All ────────────────────────────────────────────────
+document.getElementById('detailSelectAll').addEventListener('change', function() {
+  document.querySelectorAll('.detail-check').forEach(cb => cb.checked = this.checked);
+  updateSelectedCount();
+});
+document.addEventListener('change', function(e) {
+  if (e.target.classList.contains('detail-check')) updateSelectedCount();
+});
+
+// ─── Modal ─────────────────────────────────────────────────────
+document.getElementById('modalClose').addEventListener('click', () => {
+  document.getElementById('studentModal').classList.remove('open');
+});
+document.getElementById('studentModal').addEventListener('click', function(e) {
+  if (e.target === this) this.classList.remove('open');
+});
+
+// ─── Export ────────────────────────────────────────────────────
+document.getElementById('exportTrendBtn').addEventListener('click', () => {
+  let csv = '\uFEFF学期,总人数,已检人数,近视人数,近视率,平均视力值,有效检测率,男生近视率,女生近视率\n';
+  trendData.forEach(d => {
+    csv += `${d.term},${d.total},${d.checked},${d.myopia},${d.rate},${d.avg},${d.validRate},${d.male},${d.female}\n`;
+  });
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '近视率趋势数据.csv';
+  a.click();
+});
+
+document.getElementById('exportDetailBtn').addEventListener('click', () => {
+  const grades = [...new Set(detailData.map(d => d.grade))].sort();
+  let csv = '\uFEFF健康ID,姓名,年级,班级,性别,检测时间,左眼视力值,右眼视力值,本次档位,上次档位,档位变化,有效性评分,异常类型,备注,检测轮次\n';
+  detailData.forEach(d => {
+    const levelCh = d.level === '—' ? '—' : (d.level - (d.lastLevel || 0));
+    csv += `${d.id},${d.name},${d.grade},${d.cls},${d.gender},${d.date},${d.leftEye},${d.rightEye},${d.level},${d.lastLevel},${levelCh},${d.valid},${d.abnormal},${d.note},第${d.round}轮\n`;
+  });
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '检测明细_export.csv';
+  a.click();
+});
+
+// ─── Init ──────────────────────────────────────────────────────
+function init() {
+  // tab click
+  document.querySelectorAll('.main-tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+      const tabId = this.dataset.tab;
+      switchTab(tabId);
+      // render lazy content
+      if (tabId === 'tabGrade') renderGrade();
+      if (tabId === 'tabClass') renderClass(document.getElementById('classGradeFilter').value);
+      if (tabId === 'tabStudent') renderStudent();
+      if (tabId === 'tabTrend') renderTrend();
+      if (tabId === 'tabDetail') renderDetail();
+    });
+  });
+
+  // render all
+  renderIndicator();
+  renderLevel();
+  renderGrade();
+  renderClass('');
+  renderTrend();
+  renderStudent();
+  renderDetail();
+
+  // populate grade filters
+  const grades = ['一年级','二年级','三年级','四年级','五年级','六年级'];
+  grades.forEach(g => {
+    const opt1 = new Option(g, g);
+    document.getElementById('studentGradeFilter').appendChild(opt1.cloneNode(true));
+    const opt2 = new Option(g, g);
+    document.getElementById('detailGradeFilter').appendChild(opt2.cloneNode(true));
+  });
+
+  // grade → class filter cascade
+  ['studentGradeFilter','detailGradeFilter'].forEach(id => {
+    document.getElementById(id).addEventListener('change', function() {
+      const grade = this.value;
+      const targetClassId = id === 'studentGradeFilter' ? 'studentClassFilter' : 'detailClassFilter';
+      const sel = document.getElementById(targetClassId);
+      sel.innerHTML = '<option value="">班级</option>';
+      if (grade) {
+        for (let i = 1; i <= 5; i++) {
+          sel.add(new Option(i+'班', i+'班'));
+        }
+      }
+      studentPage = 1; detailPage = 1;
+      renderStudent(); renderDetail();
+    });
+  });
+
+  // sidebar toggles
+  document.getElementById('sidebarUser').addEventListener('click', function(e) {
+    e.stopPropagation();
+    document.getElementById('userPanel').classList.toggle('open');
+    document.getElementById('msgPanel').classList.remove('open');
+  });
+  document.getElementById('sidebarMsgBtn').addEventListener('click', function(e) {
+    e.stopPropagation();
+    document.getElementById('msgPanel').classList.toggle('open');
+    document.getElementById('userPanel').classList.remove('open');
+  });
+  document.addEventListener('click', function() {
+    document.getElementById('userPanel').classList.remove('open');
+    document.getElementById('msgPanel').classList.remove('open');
+  });
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body></html>

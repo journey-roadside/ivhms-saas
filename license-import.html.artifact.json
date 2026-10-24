@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "校端管理平台 — 初始化安装",
+  "entry": "license-import-page-final-3.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "primary": true,
+  "createdAt": "2026-07-01T15:36:17.161Z",
+  "updatedAt": "2026-07-01T15:36:17.173Z",
+  "sourceSkillId": "agent-browser",
+  "designSystemId": "mintlify",
+  "metadata": {
+    "identifier": "license-import-page-final-3",
+    "artifactType": "text/html",
+    "inferred": false
+  }
+}

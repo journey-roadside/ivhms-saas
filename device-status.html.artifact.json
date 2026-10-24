@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "device-status.html",
+  "entry": "device-status.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-07-02T13:28:18.855Z",
+  "updatedAt": "2026-07-02T13:28:18.855Z",
+  "metadata": {
+    "inferred": true,
+    "reconciled": true
+  }
+}

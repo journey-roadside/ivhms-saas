@@ -1,0 +1,608 @@
+<!doctype html>
+<html lang="zh-CN"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>视力健康管理平台 · 登录</title>
+<style>
+  :root {
+    --bg:          #f5f5f5;
+    --surface:     #ffffff;
+    --fg:          #0d0d0d;
+    --muted:       #555555;
+    --muted-light: #767676;
+    --border:      rgba(0,0,0,0.05);
+    --border-md:   rgba(0,0,0,0.08);
+    --accent:      #18E299;
+    --accent-deep: #0d0d0d;
+    --accent-light:#d4fae8;
+    --error:       #d45656;
+    --error-light: #fde8e8;
+    --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --font-body:    'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+    --font-mono:    'Geist Mono', 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+    --radius-sm: 4px; --radius-md: 8px; --radius-lg: 16px; --radius-xl: 24px; --radius-pill: 9999px;
+    --shadow-card: rgba(0,0,0,0.03) 0 2px 4px; --shadow-btn: rgba(0,0,0,0.06) 0 1px 2px;
+    --shadow-focused: rgba(24,226,153,0.18) 0 0 0 3px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+  body{font-family:var(--font-body);color:var(--fg);background:var(--bg);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;padding-bottom:56px;line-height:1.5}
+
+  /* ─── page shell ─────────────────────────────────────────────── */
+  .login-shell{width:100%;max-width:960px;display:flex;border-radius:var(--radius-xl);overflow:hidden;background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow-card)}
+
+  /* ─── brand side ─────────────────────────────────────────────── */
+  .brand-side{flex:0 0 50%;background:var(--fg);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 40px;position:relative;overflow:hidden}
+  .brand-side::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 30% 20%,rgba(24,226,153,0.12),transparent 70%),radial-gradient(ellipse 60% 50% at 70% 80%,rgba(24,226,153,0.08),transparent 60%);pointer-events:none}
+  .brand-icon{width:64px;height:64px;border-radius:var(--radius-lg);background:var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:28px;position:relative}
+  .brand-icon svg{width:32px;height:32px;color:var(--fg)}
+  .brand-title{font-family:var(--font-display);font-size:28px;font-weight:600;letter-spacing:-0.4px;text-align:center;line-height:1.2;margin-bottom:12px}
+  .brand-subtitle{font-size:14px;color:rgba(255,255,255,0.6);text-align:center;line-height:1.6;max-width:240px}
+  .brand-features{margin-top:40px;display:flex;flex-direction:column;gap:16px;width:200px}
+  .brand-feature{display:flex;align-items:center;gap:12px;font-size:13px;color:rgba(255,255,255,0.7)}
+  .brand-feature-dot{width:24px;height:24px;border-radius:var(--radius-pill);background:rgba(24,226,153,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .brand-feature-dot svg{width:12px;height:12px;color:var(--accent)}
+  .brand-footer{margin-top:auto;padding-top:32px;font-size:12px;color:rgba(255,255,255,0.35);text-align:center}
+
+  /* ─── form side ──────────────────────────────────────────────── */
+  .form-side{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 40px;min-width:0;position:relative}
+  .form-container{width:100%;max-width:360px}
+
+  /* ─── header area ────────────────────────────────────────────── */
+  .form-logo{display:flex;align-items:center;gap:10px;margin-bottom:36px}
+  .form-logo-icon{width:36px;height:36px;border-radius:var(--radius-md);background:var(--accent-light);display:flex;align-items:center;justify-content:center}
+  .form-logo-icon svg{width:18px;height:18px;color:var(--accent-deep)}
+  .form-logo-text{font-family:var(--font-display);font-size:17px;font-weight:600;letter-spacing:-0.01em;color:var(--fg)}
+  .form-title{font-family:var(--font-display);font-size:24px;font-weight:600;letter-spacing:-0.24px;line-height:1.3;color:var(--fg);margin-bottom:8px}
+  .form-subtitle{font-size:14px;color:var(--muted);margin-bottom:32px;line-height:1.6}
+
+  /* ─── form fields ────────────────────────────────────────────── */
+  .form-field{width:100%;margin-bottom:20px}
+  .form-field:last-child{margin-bottom:0}
+  .form-field label{display:block;font-size:13px;font-weight:500;color:var(--fg);margin-bottom:6px;letter-spacing:0.01em}
+  .form-field label .required{color:var(--error);margin-left:2px}
+  .form-input{width:100%;height:44px;padding:0 14px;font-family:var(--font-body);font-size:14px;color:var(--fg);background:var(--surface);border:1.5px solid var(--border-md);border-radius:var(--radius-md);outline:none;transition:border-color .2s,box-shadow .2s}
+  .form-input::placeholder{color:var(--muted-light)}
+  .form-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(24,226,153,0.12)}
+  .form-input.error{border-color:var(--error);box-shadow:0 0 0 3px rgba(212,86,86,0.1)}
+  .form-error{font-size:12px;color:var(--error);margin-top:4px;display:none;line-height:1.4}
+  .form-error.visible{display:block}
+
+  /* ─── password toggle ────────────────────────────────────────── */
+  .input-with-toggle{position:relative}
+  .input-with-toggle .form-input{padding-right:44px}
+  .pwd-toggle{position:absolute;right:1px;top:1px;bottom:1px;width:42px;display:flex;align-items:center;justify-content:center;background:transparent;border:none;cursor:pointer;color:var(--muted-light);border-radius:0 var(--radius-md) var(--radius-md) 0;transition:color .15s,background .15s}
+  .pwd-toggle:hover{color:var(--fg);background:rgba(0,0,0,0.03)}
+  .pwd-toggle:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+  .pwd-toggle svg{width:16px;height:16px}
+
+  /* ─── phone input ────────────────────────────────────────────── */
+  .phone-group{display:flex}
+  .phone-prefix{height:44px;padding:0 12px;display:flex;align-items:center;font-size:14px;font-weight:500;color:var(--fg);background:var(--bg);border:1.5px solid var(--border-md);border-right:none;border-radius:var(--radius-md) 0 0 var(--radius-md);white-space:nowrap}
+  .phone-group .form-input{border-radius:0 var(--radius-md) var(--radius-md) 0}
+
+  /* ─── sms ────────────────────────────────────────────────────── */
+  .sms-group{display:flex;gap:10px}
+  .sms-group .form-input{flex:1}
+  .sms-btn{height:44px;padding:0 16px;font-family:var(--font-body);font-size:13px;font-weight:500;color:var(--accent-deep);background:var(--accent-light);border:1.5px solid rgba(24,226,153,0.3);border-radius:var(--radius-md);cursor:pointer;white-space:nowrap;transition:opacity .2s,background .2s;flex-shrink:0}
+  .sms-btn:hover:not(:disabled){background:rgba(24,226,153,0.25)}
+  .sms-btn:disabled{opacity:.6;cursor:not-allowed}
+  .sms-btn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+
+  /* ─── buttons ────────────────────────────────────────────────── */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:var(--font-body);font-size:15px;font-weight:500;line-height:1.5;border-radius:var(--radius-pill);cursor:pointer;transition:background .2s,opacity .2s,transform .1s,box-shadow .2s;outline:none;border:none;padding:12px 28px;position:relative;width:100%}
+  .btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .btn svg{width:16px;height:16px;flex-shrink:0}
+  .btn-primary{background:var(--fg);color:#fff;box-shadow:var(--shadow-btn)}
+  .btn-primary:hover:not(:disabled){background:#1a1a1a}
+  .btn-primary:active:not(:disabled){transform:scale(0.985);box-shadow:none}
+  .btn-primary:disabled{background:rgba(0,0,0,0.08);color:var(--muted-light);cursor:not-allowed;box-shadow:none}
+  .btn .spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;flex-shrink:0}
+  .btn:disabled .spinner{border-color:rgba(0,0,0,0.1);border-top-color:var(--muted-light)}
+
+  /* ─── auxiliary links ────────────────────────────────────────── */
+  .form-links{display:flex;justify-content:space-between;align-items:center;margin-bottom:40px;font-size:13px}
+  .link-accent{color:var(--accent-deep);font-weight:500;cursor:pointer;text-decoration:none;transition:color .15s;border-radius:2px;background:none;border:none;font-family:var(--font-body);font-size:inherit}
+  .link-accent:hover{color:var(--fg)}
+  .link-accent:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+
+  /* ─── status message ─────────────────────────────────────────── */
+  .status-msg{width:100%;padding:10px 14px;border-radius:var(--radius-md);font-size:13px;line-height:1.5;display:flex;align-items:flex-start;gap:8px;margin-bottom:0;max-height:0;overflow:hidden;opacity:0;transition:max-height .3s,opacity .25s,margin-bottom .3s,padding .3s;padding-top:0;padding-bottom:0}
+  .status-msg.visible{max-height:80px;opacity:1;margin-bottom:20px;padding:10px 14px}
+  .status-msg svg{width:16px;height:16px;flex-shrink:0;margin-top:1px}
+  .status-msg.error{background:var(--error-light);color:var(--error)}
+
+  /* ─── card footer ────────────────────────────────────────────── */
+  .form-footer{margin-top:20px;font-size:12px;color:var(--muted-light);text-align:center;line-height:1.5}
+  .form-footer a{color:var(--accent-deep);text-decoration:none;border-radius:2px;transition:color .15s}
+  .form-footer a:hover{color:var(--fg);text-decoration:underline}
+
+  /* ─── animation ──────────────────────────────────────────────── */
+  @keyframes cardIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes shake{0%,100%{transform:translateX(0)}15%{transform:translateX(-6px)}30%{transform:translateX(5px)}45%{transform:translateX(-4px)}60%{transform:translateX(3px)}75%{transform:translateX(-1px)}}
+
+  .view-transition{animation:cardIn .4s cubic-bezier(.22,1,.36,1)}
+
+  /* ─── success view ────────────────────────────────────────────── */
+  .success-center{text-align:center;padding:8px 0}
+  .success-badge{width:72px;height:72px;border-radius:var(--radius-pill);background:var(--accent-light);display:flex;align-items:center;justify-content:center;margin:0 auto 20px}
+  .success-badge svg{width:36px;height:36px;color:var(--accent-deep)}
+
+  /* ─── responsive ─────────────────────────────────────────────── */
+  @media(max-width:768px){
+    .brand-side{display:none}
+    body{padding:16px;align-items:flex-start;padding-top:32px}
+    .login-shell{max-width:100%;border-radius:var(--radius-lg)}
+    .form-side{padding:32px 24px}
+    .form-container{max-width:100%}
+    .form-title{font-size:20px;letter-spacing:-0.2px}
+    .form-input{height:42px;font-size:13px}
+    .btn{padding:12px 20px}
+    .phone-prefix{height:42px;font-size:13px}
+    .sms-btn{height:42px;font-size:12px;padding:0 12px}
+  }
+  @media(min-width:769px) and (max-width:960px){
+    .brand-side{padding:40px 28px}
+    .brand-title{font-size:22px}
+    .brand-features{margin-top:28px}
+  }
+  @media(prefers-reduced-motion:reduce){
+    .view-transition{animation:none}
+    .btn,.form-input,.pwd-toggle,.sms-btn,.link-accent,.status-msg{transition:none}
+    .btn .spinner{animation:spin 1.2s linear infinite}
+  }
+
+  /* ─── page footer ────────────────────────────────────────────── */
+  .page-footer{position:fixed;bottom:0;left:0;right:0;text-align:center;font-size:12px;color:var(--muted-light);line-height:1.6;padding:16px 0;z-index:10;background:var(--bg)}
+  .page-footer-links{text-align:center;margin-bottom:4px;line-height:1.8}
+  .page-footer-links a{color:var(--fg);text-decoration:none;font-weight:600;transition:color .15s}
+  .page-footer-links a:hover{color:var(--accent)}
+  .page-footer-links a:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .page-footer-sep{color:rgba(0,0,0,0.15)}
+  @media(max-width:768px){.page-footer{padding:12px 16px}}
+</style>
+</head>
+<body>
+
+<div class="login-shell" data-od-id="login-shell">
+  <!-- 品牌侧 -->
+  <aside class="brand-side" data-od-id="brand-side">
+    <div class="brand-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path></svg>
+    </div>
+    <h2 class="brand-title">明瞳 · IVHMS</h2>
+    <p class="brand-subtitle">智创明眸，守护成长每一步</p>
+    <div class="brand-features">
+      <div class="brand-feature">
+        <div class="brand-feature-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg></div>
+        智能视力健康评估
+      </div>
+      <div class="brand-feature">
+        <div class="brand-feature-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg></div>
+        学生视力健康追踪
+      </div>
+      <div class="brand-feature">
+        <div class="brand-feature-dot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg></div>
+        多维度数据统计分析
+      </div>
+    </div>
+    
+  </aside>
+
+  <!-- 表单侧 -->
+  <main class="form-side" data-od-id="form-side">
+    <div class="form-container">
+      <!-- ═══ 登录视图 ═══ -->
+      <div id="loginView" class="view-transition">
+        <h1 class="form-title">登录</h1>
+        <p class="form-subtitle">欢迎登录视力健康管理平台</p>
+
+        <div class="status-msg" id="loginStatus" role="alert" aria-live="polite">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+          <span id="loginStatusText"></span>
+        </div>
+
+        <div class="form-field">
+          <label for="loginPhone">手机号码</label>
+          <div class="phone-group">
+            <span class="phone-prefix">+86</span>
+            <input type="tel" id="loginPhone" class="form-input" placeholder="请输入手机号码" maxlength="11" inputmode="numeric" aria-describedby="loginPhoneError">
+          </div>
+          <div class="form-error" id="loginPhoneError" role="alert">请输入有效的11位手机号码</div>
+        </div>
+        <div class="form-field">
+          <label for="loginSmsCode">短信验证码</label>
+          <div class="sms-group">
+            <input type="text" id="loginSmsCode" class="form-input" placeholder="请输入验证码" maxlength="6" inputmode="numeric" autocomplete="one-time-code" aria-describedby="loginSmsError">
+            <button type="button" class="sms-btn" id="loginSmsBtn">发送验证码</button>
+          </div>
+          <div class="form-error" id="loginSmsError" role="alert">请输入6位数字验证码</div>
+        </div>
+
+        <button class="btn btn-primary" type="button" id="loginBtn" style="margin-top:20px">
+          <span id="loginBtnLabel">登录</span>
+        </button>
+
+        <div style="margin-top:20px;text-align:center">
+          <!-- <button type="button" class="link-accent" id="forgotLink">忘记密码</button> -->
+        </div>
+
+        <div class="form-footer"></div>
+  
+      </div>
+
+      <!-- ═══ 忘记密码视图 ═══
+      <div id="forgotView" style="display:none">
+        <h1 class="form-title">密码重置</h1>
+        <p class="form-subtitle">验证码将发送至您绑定的手机号码</p>
+
+        <div class="status-msg" id="forgotStatus" role="alert" aria-live="polite">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+          <span id="forgotStatusText"></span>
+        </div>
+
+        <div class="form-field">
+          <label for="resetPhone">手机号码</label>
+          <div class="phone-group">
+            <span class="phone-prefix">+86</span>
+            <input type="tel" id="resetPhone" class="form-input" placeholder="请输入绑定手机号码" maxlength="11" inputmode="numeric" aria-describedby="resetPhoneError">
+          </div>
+          <div class="form-error" id="resetPhoneError" role="alert">请输入有效的11位手机号码</div>
+        </div>
+        <div class="form-field">
+          <label for="resetSmsCode">短信验证码</label>
+          <div class="sms-group">
+            <input type="text" id="resetSmsCode" class="form-input" placeholder="请输入验证码" maxlength="6" inputmode="numeric" autocomplete="one-time-code" aria-describedby="resetSmsError">
+            <button type="button" class="sms-btn" id="resetSmsBtn">发送验证码</button>
+          </div>
+          <div class="form-error" id="resetSmsError" role="alert">请输入6位数字验证码</div>
+        </div>
+        <div class="form-field">
+          <label for="resetNewPwd">新密码</label>
+          <div class="input-with-toggle">
+            <input type="password" id="resetNewPwd" class="form-input" placeholder="请设置新密码" autocomplete="new-password" aria-describedby="resetNewPwdError">
+            <button type="button" class="pwd-toggle" id="pwdToggleReset1" aria-label="显示密码" tabindex="0">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            </button>
+          </div>
+          <div class="form-error" id="resetNewPwdError" role="alert">密码至少6位</div>
+        </div>
+        <div class="form-field">
+          <label for="resetConfirmPwd">确认新密码</label>
+          <div class="input-with-toggle">
+            <input type="password" id="resetConfirmPwd" class="form-input" placeholder="请再次输入新密码" autocomplete="new-password" aria-describedby="resetConfirmPwdError">
+            <button type="button" class="pwd-toggle" id="pwdToggleReset2" aria-label="显示密码" tabindex="0">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            </button>
+          </div>
+          <div class="form-error" id="resetConfirmPwdError" role="alert">两次输入的密码不一致</div>
+        </div>
+
+        <button class="btn btn-primary" type="button" id="resetBtn" style="margin-top:20px">
+          <span id="resetBtnLabel">提交重置</span>
+        </button>
+
+        <div style="margin-top:20px;text-align:center">
+          <button type="button" class="link-accent" id="backToLogin">返回登录</button>
+        </div>
+      </div>
+      <div id="successView" style="display:none">
+        <div class="success-center">
+          <div class="success-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+          </div>
+          <h1 class="form-title" style="margin-bottom:8px">密码重置成功</h1>
+          <p class="form-subtitle" style="margin-bottom:28px">请使用新密码登录平台</p>
+          <button class="btn btn-primary" type="button" id="successLoginBtn">返回登录</button>
+        </div>
+      </div>
+      -->
+    </div>
+  </main>
+</div>
+
+<footer class="page-footer" data-od-id="page-footer">
+  <div class="page-footer-links">
+    登录即视为您已阅读并同意 <a href="#">用户条款</a> 、<a href="#">隐私政策</a> 和 <a href="#">服务协议</a>
+  </div>
+  <div>©2026 武汉市明瞳智创科技有限公司</div>
+</footer>
+
+<script>
+(function(){
+  'use strict';
+
+  /* ─── DOM refs ─────────────────────────────────────────────── */
+  var loginView = document.getElementById('loginView');
+  // var forgotView = document.getElementById('forgotView');
+  // var successView = document.getElementById('successView');
+
+  var loginPhone = document.getElementById('loginPhone');
+  var loginSmsCode = document.getElementById('loginSmsCode');
+  var loginSmsBtn = document.getElementById('loginSmsBtn');
+  var loginBtn = document.getElementById('loginBtn');
+  var loginBtnLabel = document.getElementById('loginBtnLabel');
+  var loginStatus = document.getElementById('loginStatus');
+  var loginStatusText = document.getElementById('loginStatusText');
+
+  // var forgotLink = document.getElementById('forgotLink');
+  // var backToLogin = document.getElementById('backToLogin');
+  // var successLoginBtn = document.getElementById('successLoginBtn');
+
+  // var resetPhone = document.getElementById('resetPhone');
+  // var resetSmsCode = document.getElementById('resetSmsCode');
+  // var resetSmsBtn = document.getElementById('resetSmsBtn');
+  // var resetNewPwd = document.getElementById('resetNewPwd');
+  // var resetConfirmPwd = document.getElementById('resetConfirmPwd');
+  // var resetBtn = document.getElementById('resetBtn');
+  // var resetBtnLabel = document.getElementById('resetBtnLabel');
+  // var forgotStatus = document.getElementById('forgotStatus');
+  // var forgotStatusText = document.getElementById('forgotStatusText');
+
+  /* ─── view switching ────────────────────────────────────────── */
+  function showView(view) {
+    loginView.style.display = 'none';
+    // forgotView.style.display = 'none';
+    // successView.style.display = 'none';
+    view.style.display = '';
+    view.classList.remove('view-transition');
+    view.offsetHeight; // force reflow
+    view.classList.add('view-transition');
+  }
+
+  /* ─── field errors ──────────────────────────────────────────── */
+  function showFieldError(inputId, errorId, msg) {
+    var i = document.getElementById(inputId);
+    if (i) { i.classList.add('error'); i.setAttribute('aria-invalid','true'); }
+    var e = document.getElementById(errorId);
+    if (e) { e.textContent = msg; e.classList.add('visible'); }
+  }
+  function clearFieldError(inputId, errorId) {
+    var i = document.getElementById(inputId);
+    if (i) { i.classList.remove('error'); i.setAttribute('aria-invalid','false'); }
+    var e = document.getElementById(errorId);
+    if (e) e.classList.remove('visible');
+  }
+
+  /* ─── status messages ───────────────────────────────────────── */
+  function showLoginError(msg) {
+    loginStatus.className = 'status-msg visible error';
+    loginStatusText.textContent = msg;
+    loginView.style.animation = 'shake .4s ease';
+    setTimeout(function(){ loginView.style.animation = ''; }, 400);
+  }
+  function clearLoginStatus() {
+    loginStatus.className = 'status-msg';
+    loginStatusText.textContent = '';
+  }
+  // function showForgotError(msg) {
+  //   forgotStatus.className = 'status-msg visible error';
+  //   forgotStatusText.textContent = msg;
+  // }
+  // function clearForgotStatus() {
+  //   forgotStatus.className = 'status-msg';
+  //   forgotStatusText.textContent = '';
+  // }
+
+  /* ─── password toggles ──────────────────────────────────────── */
+  var EYE_OPEN = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+  var EYE_CLOSED = '<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>';
+
+  function setupPwdToggle(btnId, inputId) {
+    var btn = document.getElementById(btnId);
+    var input = document.getElementById(inputId);
+    btn.addEventListener('click', function() {
+      var isHidden = input.type === 'password';
+      input.type = isHidden ? 'text' : 'password';
+      btn.querySelector('svg').innerHTML = isHidden ? EYE_CLOSED : EYE_OPEN;
+      btn.setAttribute('aria-label', isHidden ? '隐藏密码' : '显示密码');
+    });
+  }
+  // setupPwdToggle('pwdToggleReset1', 'resetNewPwd');
+  // setupPwdToggle('pwdToggleReset2', 'resetConfirmPwd');
+
+  /* ─── SMS countdown (login) ─────────────────────────────────── */
+  var loginSmsTimer = null, loginSmsCountdown = 0;
+  loginSmsBtn.addEventListener('click', function() {
+    var p = loginPhone.value.trim();
+    if (!/^1[3-9]\d{9}$/.test(p)) {
+      showFieldError('loginPhone', 'loginPhoneError', '请先输入有效的手机号码');
+      return;
+    }
+    clearFieldError('loginPhone', 'loginPhoneError');
+    loginSmsCountdown = 60;
+    loginSmsBtn.disabled = true;
+    loginSmsBtn.textContent = loginSmsCountdown + 's 后重发';
+    loginSmsTimer = setInterval(function() {
+      loginSmsCountdown--;
+      if (loginSmsCountdown <= 0) {
+        clearInterval(loginSmsTimer);
+        loginSmsBtn.disabled = false;
+        loginSmsBtn.textContent = '发送验证码';
+      } else {
+        loginSmsBtn.textContent = loginSmsCountdown + 's 后重发';
+      }
+    }, 1000);
+  });
+
+  /* ─── SMS countdown (forgot) ────────────────────────────────────
+  var smsTimer = null, smsCountdown = 0;
+  resetSmsBtn.addEventListener('click', function() {
+    var p = resetPhone.value.trim();
+    if (!/^1[3-9]\d{9}$/.test(p)) {
+      showFieldError('resetPhone', 'resetPhoneError', '请先输入有效的手机号码');
+      return;
+    }
+    clearFieldError('resetPhone', 'resetPhoneError');
+    startSmsCountdown();
+  });
+  function startSmsCountdown() {
+    smsCountdown = 60;
+    resetSmsBtn.disabled = true;
+    resetSmsBtn.textContent = smsCountdown + 's 后重发';
+    smsTimer = setInterval(function() {
+      smsCountdown--;
+      if (smsCountdown <= 0) {
+        clearInterval(smsTimer);
+        resetSmsBtn.disabled = false;
+        resetSmsBtn.textContent = '发送验证码';
+      } else {
+        resetSmsBtn.textContent = smsCountdown + 's 后重发';
+      }
+    }, 1000);
+  }
+  */
+
+  /* ─── input listeners ───────────────────────────────────────── */
+  loginPhone.addEventListener('input', function(){ clearFieldError('loginPhone','loginPhoneError'); clearLoginStatus(); });
+  loginSmsCode.addEventListener('input', function(){ clearFieldError('loginSmsCode','loginSmsError'); clearLoginStatus(); });
+  // resetPhone.addEventListener('input', function(){ clearFieldError('resetPhone','resetPhoneError'); clearForgotStatus(); });
+  // resetSmsCode.addEventListener('input', function(){ clearFieldError('resetSmsCode','resetSmsError'); clearForgotStatus(); });
+  // resetNewPwd.addEventListener('input', function(){ clearFieldError('resetNewPwd','resetNewPwdError'); clearForgotStatus(); });
+  // resetConfirmPwd.addEventListener('input', function(){ clearFieldError('resetConfirmPwd','resetConfirmPwdError'); clearForgotStatus(); });
+
+  /* ─── login ─────────────────────────────────────────────────── */
+  loginBtn.addEventListener('click', function() {
+    if (loginBtn.disabled) return;
+    clearLoginStatus();
+
+    var valid = true;
+    var phone = loginPhone.value.trim();
+    var code = loginSmsCode.value.trim();
+
+    if (!/^1[3-9]\d{9}$/.test(phone)) {
+      showFieldError('loginPhone', 'loginPhoneError', '请输入有效的11位手机号码');
+      valid = false;
+    } else {
+      clearFieldError('loginPhone', 'loginPhoneError');
+    }
+    if (!code || code.length !== 6 || !/^\d{6}$/.test(code)) {
+      showFieldError('loginSmsCode', 'loginSmsError', '请输入6位数字验证码');
+      valid = false;
+    } else {
+      clearFieldError('loginSmsCode', 'loginSmsError');
+    }
+
+    if (!valid) return;
+
+    loginBtn.disabled = true;
+    loginBtnLabel.textContent = '';
+    var spinner = document.createElement('span');
+    spinner.className = 'spinner';
+    loginBtn.insertBefore(spinner, loginBtnLabel);
+
+    setTimeout(function() {
+      window.location.href = 'index.html';
+    }, 800);
+  });
+
+  /* ─── reset form state ──────────────────────────────────────── */
+  function resetLoginForm() {
+    loginPhone.value = '';
+    loginSmsCode.value = '';
+    clearFieldError('loginPhone','loginPhoneError');
+    clearFieldError('loginSmsCode','loginSmsError');
+    clearLoginStatus();
+  }
+  // function resetForgotForm() {
+  //   resetPhone.value = '';
+  //   resetSmsCode.value = '';
+  //   resetNewPwd.value = '';
+  //   resetConfirmPwd.value = '';
+  //   clearFieldError('resetPhone','resetPhoneError');
+  //   clearFieldError('resetSmsCode','resetSmsError');
+  //   clearFieldError('resetNewPwd','resetNewPwdError');
+  //   clearFieldError('resetConfirmPwd','resetConfirmPwdError');
+  //   clearForgotStatus();
+  //   if (smsTimer) { clearInterval(smsTimer); smsTimer = null; }
+  //   smsCountdown = 0;
+  //   resetSmsBtn.disabled = false;
+  //   resetSmsBtn.textContent = '发送验证码';
+  //   resetNewPwd.type = 'password';
+  //   resetConfirmPwd.type = 'password';
+  //   document.getElementById('pwdToggleReset1').querySelector('svg').innerHTML = EYE_OPEN;
+  //   document.getElementById('pwdToggleReset1').setAttribute('aria-label','显示密码');
+  //   document.getElementById('pwdToggleReset2').querySelector('svg').innerHTML = EYE_OPEN;
+  //   document.getElementById('pwdToggleReset2').setAttribute('aria-label','显示密码');
+  // }
+
+  /* ─── forgot password ─────────────────────────────────────────
+  forgotLink.addEventListener('click', function() {
+    resetLoginForm();
+    showView(forgotView);
+  });
+  backToLogin.addEventListener('click', function() {
+    resetForgotForm();
+    showView(loginView);
+  });
+  successLoginBtn.addEventListener('click', function(e) {
+    e.preventDefault();
+    resetForgotForm();
+    loginPassword.value = '';
+    showView(loginView);
+  });
+
+  /* ─── reset password ──────────────────────────────────────────
+  resetBtn.addEventListener('click', function() {
+    if (resetBtn.disabled) return;
+    clearForgotStatus();
+
+    var valid = true;
+    var phone = resetPhone.value.trim();
+    var code = resetSmsCode.value.trim();
+    var newPwd = resetNewPwd.value;
+    var confirmPwd = resetConfirmPwd.value;
+
+    if (!phone || !/^1[3-9]\d{9}$/.test(phone)) {
+      showFieldError('resetPhone', 'resetPhoneError', '请输入有效的11位手机号码');
+      valid = false;
+    } else { clearFieldError('resetPhone', 'resetPhoneError'); }
+
+    if (!code || !/^\d{6}$/.test(code)) {
+      showFieldError('resetSmsCode', 'resetSmsError', '请输入6位数字验证码');
+      valid = false;
+    } else { clearFieldError('resetSmsCode', 'resetSmsError'); }
+
+    if (!newPwd || newPwd.length < 6) {
+      showFieldError('resetNewPwd', 'resetNewPwdError', '密码至少6位');
+      valid = false;
+    } else { clearFieldError('resetNewPwd', 'resetNewPwdError'); }
+
+    if (confirmPwd !== newPwd) {
+      showFieldError('resetConfirmPwd', 'resetConfirmPwdError', '两次输入的密码不一致');
+      valid = false;
+    } else { clearFieldError('resetConfirmPwd', 'resetConfirmPwdError'); }
+
+    if (!valid) return;
+
+    resetBtn.disabled = true;
+    resetBtnLabel.textContent = '';
+    var spinner = document.createElement('span');
+    spinner.className = 'spinner';
+    resetBtn.insertBefore(spinner, resetBtnLabel);
+
+    setTimeout(function() {
+      spinner.remove();
+      resetBtn.disabled = false;
+      resetBtnLabel.textContent = '重置密码';
+      showView(successView);
+    }, 1000);
+  });
+  */
+
+  /* ─── keyboard shortcuts ────────────────────────────────────── */
+  // loginPassword.addEventListener('keydown', function(e) {
+  //   if (e.key === 'Enter') loginBtn.click();
+  // });
+  // loginAccount.addEventListener('keydown', function(e) {
+  //   if (e.key === 'Enter') loginPassword.focus();
+  // });
+  // resetConfirmPwd.addEventListener('keydown', function(e) {
+  //   if (e.key === 'Enter') resetBtn.click();
+  // });
+})();
+</script>
+
+
+</body></html>

@@ -1,0 +1,1349 @@
+<!doctype html>
+<html lang="zh-CN"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>视力健康管理平台 · 统计分析</title>
+<script src="vendor/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg:          #f7f7f7;
+    --surface:     #ffffff;
+    --fg:          #0a0a0a;
+    --muted:       #5a5a5c;
+    --muted-light: #888888;
+    --border:      #e5e5e5;
+    --border-md:   #ededed;
+    --accent:      #00d4a4;
+    --accent-deep: #0d0d0d;
+    --accent-light:#7cebcb;
+    --error:       #d45656;
+    --error-light: #fde8e8;
+    --warning:     #f59e0b;
+    --info:        #3b82f6;
+    --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --font-body:    'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+    --radius-xs: 4px; --radius-sm: 6px; --radius-md: 8px; --radius-lg: 12px; --radius-xl: 16px; --radius-xxl: 24px; --radius-pill: 9999px;
+    --shadow-card: rgba(0,0,0,0.03) 0 2px 4px; --shadow-btn: rgba(0,0,0,0.06) 0 1px 2px;
+    --sidebar-w: 240px;
+    --header-h: 56px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;scrollbar-width:none;-ms-overflow-style:none}
+  html::-webkit-scrollbar{display:none}
+  body{font-family:var(--font-body);color:var(--fg);background:var(--bg);min-height:100vh;display:flex;line-height:1.5}
+
+  .sidebar{width:var(--sidebar-w);background:var(--fg);color:#fff;display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;transition:transform .3s}
+  .sidebar-logo{padding:16px 20px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,0.08)}
+  .sidebar-logo-icon{width:32px;height:32px;border-radius:var(--radius-md);background:var(--accent);display:flex;align-items:center;justify-content:center}
+  .sidebar-logo-icon svg{width:16px;height:16px;color:var(--fg)}
+  .sidebar-logo-text{font-family:var(--font-display);font-size:15px;font-weight:600;letter-spacing:-0.01em}
+  .sidebar-nav{padding:8px 0;flex:1}
+  .sidebar-item{display:flex;align-items:center;gap:12px;padding:10px 20px;font-size:14px;color:rgba(255,255,255,0.6);cursor:pointer;transition:color .15s,background .15s;border-radius:0;position:relative;text-decoration:none}
+  .sidebar-item:hover{color:rgba(255,255,255,0.9);background:rgba(255,255,255,0.04)}
+  .sidebar-item.active{color:#fff;background:rgba(0,212,164,0.12)}
+  .sidebar-item.active::before{content:'';position:absolute;left:0;top:4px;bottom:4px;width:3px;background:var(--accent);border-radius:0 2px 2px 0}
+  .sidebar-item svg{width:18px;height:18px;flex-shrink:0}
+  .sidebar-bottom{padding:16px 20px;border-top:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between}
+  .sidebar-user{display:flex;align-items:center;gap:10px;cursor:pointer;transition:opacity .15s}
+  .sidebar-user:hover{opacity:.9}
+  .sidebar-avatar{width:28px;height:28px;border-radius:var(--radius-pill);background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--fg)}
+  .sidebar-username{font-size:13px;color:#fff;font-weight:500}
+  .sidebar-bottom-actions{display:flex;align-items:center;gap:8px}
+  .sidebar-bottom-btn{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:var(--radius-md);cursor:pointer;color:rgba(255,255,255,0.6);transition:background .15s,color .15s;position:relative}
+  .sidebar-bottom-btn:hover{background:rgba(255,255,255,0.08);color:#fff}
+  .sidebar-bottom-btn svg{width:18px;height:18px}
+  .sidebar-msg-badge{position:absolute;top:-2px;right:-4px;background:var(--accent);color:var(--fg);font-size:10px;font-weight:700;padding:1px 5px;border-radius:var(--radius-pill);min-width:16px;text-align:center;line-height:1.4}
+
+  .main-wrap{flex:1;min-width:0;margin-left:var(--sidebar-w);display:flex;flex-direction:column;min-height:100vh}
+  .content{flex:1;padding:24px 32px}
+  .content-title{font-family:var(--font-display);font-size:22px;font-weight:600;letter-spacing:-0.3px;margin-bottom:24px;color:var(--fg)}
+  .content-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+  .content-header .content-title{margin-bottom:0}
+
+  .sidebar-user-dropdown{position:fixed;left:20px;width:var(--sidebar-w);bottom:60px;z-index:200;display:none;opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;background:var(--fg);border:1px solid rgba(255,255,255,0.12);border-radius:var(--radius-lg);box-shadow:0 8px 32px rgba(0,0,0,0.5),0 2px 8px rgba(0,0,0,0.3)}
+  .sidebar-user-dropdown.open,.sidebar-msg-panel.open{display:block;opacity:1;transform:translateY(0)}
+  .sidebar-msg-panel{position:fixed;left:20px;width:360px;max-width:calc(100vw - 32px);bottom:60px;z-index:200;display:none;opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;background:var(--fg);border:1px solid rgba(255,255,255,0.12);border-radius:var(--radius-lg);box-shadow:0 8px 32px rgba(0,0,0,0.5),0 2px 8px rgba(0,0,0,0.3);}
+  .sidebar-user-dropdown .user-menu-item{color:#fff;display:flex;align-items:center;gap:10px;padding:10px 16px;font-size:13px;cursor:pointer;transition:background .15s;text-decoration:none}
+  .sidebar-user-dropdown .user-menu-item:hover{background:rgba(255,255,255,0.08)}
+  .sidebar-user-dropdown .user-menu-item svg{width:16px;height:16px;color:rgba(255,255,255,0.55);flex-shrink:0}
+  .sidebar-user-dropdown .user-menu-item.danger{color:#ef4444}
+  .sidebar-user-dropdown .user-menu-item.danger svg{color:#ef4444}
+  .sidebar-user-dropdown .user-menu-divider{height:1px;background:rgba(255,255,255,0.08);margin:4px 12px}
+  .msg-empty{text-align:center;padding:32px 16px;display:flex;flex-direction:column;align-items:center;gap:8px}
+  .msg-empty-icon{color:rgba(255,255,255,0.3)}
+  .msg-empty-icon svg{width:36px;height:36px}
+  .msg-empty-text{font-size:13px;color:rgba(255,255,255,0.5)}
+  .msg-header{display:flex;align-items:center;justify-content:space-between;padding:16px;border-bottom:1px solid rgba(255,255,255,0.08)}
+  .msg-header-title{font-family:var(--font-display);font-size:14px;font-weight:600;color:#fff}
+  .msg-clear-btn{font-size:12px;color:var(--accent);cursor:pointer;font-weight:500;border:none;background:none;font-family:var(--font-body)}
+  .msg-clear-btn:hover{color:#fff}
+  .msg-list{max-height:320px;overflow-y:auto}
+  .msg-list::-webkit-scrollbar{width:4px}
+  .msg-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.15);border-radius:4px}
+  .msg-item{padding:12px 10px;border-bottom:1px solid rgba(255,255,255,0.06);cursor:pointer;transition:background .15s}
+  .msg-item:hover{background:rgba(255,255,255,0.06)}
+  .msg-item-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+  .msg-item-title{font-size:13px;font-weight:500;color:#fff;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .msg-item-time{font-size:11px;color:rgba(255,255,255,0.4)}
+  .msg-item-type{font-size:12px;color:rgba(255,255,255,0.55)}
+  .msg-footer{padding:12px 16px;border-top:1px solid rgba(255,255,255,0.08);text-align:center;font-size:13px;color:var(--accent);cursor:pointer;font-weight:500}
+  .msg-footer:hover{color:#fff}
+
+  .confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:999;display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;transition:opacity .2s,visibility .2s}
+  .confirm-overlay.open{opacity:1;visibility:visible}
+  .confirm-box{background:var(--surface);border-radius:var(--radius-lg);padding:24px;width:360px;max-width:90vw;box-shadow:rgba(0,0,0,0.12) 0 16px 48px}
+  .confirm-title{font-family:var(--font-display);font-size:16px;font-weight:600;margin-bottom:8px}
+  .confirm-msg{font-size:14px;color:var(--muted);margin-bottom:40px;line-height:1.6}
+  .confirm-actions{display:flex;gap:12px;justify-content:flex-end}
+  .confirm-btn{padding:8px 20px;font-size:14px;font-weight:500;border-radius:var(--radius-pill);cursor:pointer;font-family:var(--font-body);transition:background .2s}
+  .confirm-btn-cancel{background:var(--bg);color:var(--fg);border:1px solid var(--border-md)}
+  .confirm-btn-cancel:hover{background:rgba(0,0,0,0.06)}
+  .confirm-btn-danger{background:#ef4444;color:#fff;border:none}
+  .confirm-btn-danger:hover{background:#dc2626}
+
+  .btn-primary{padding:10px 20px;font-size:14px;font-weight:500;border-radius:var(--radius-pill);cursor:pointer;font-family:var(--font-body);background:var(--fg);color:#fff;border:none;transition:opacity .15s}
+  .btn-primary:hover{opacity:.9}
+  .btn-ghost{padding:8px 12px;font-size:14px;font-weight:500;border-radius:var(--radius-md);cursor:pointer;font-family:var(--font-body);background:transparent;color:var(--fg);border:none;transition:opacity .15s}
+  .btn-ghost:hover{opacity:.8}
+
+  /* ─── stats rows ───────────────────────────────────────── */
+  .stats-row{display:grid;gap:16px;margin-bottom:16px}
+  .stats-row-3{grid-template-columns:1fr 1fr 1fr}
+  .stats-row-2{grid-template-columns:1fr 1fr}
+  .stats-row-7030{grid-template-columns:70fr 30fr}
+  .stats-card{background:var(--surface);border-radius:var(--radius-lg);padding:24px;box-shadow:var(--shadow-card);border:1px solid var(--border);min-width:0}
+  .stats-card-fixed-footer{display:flex;flex-direction:column}
+  .stats-card-fixed-footer .stats-card-body{flex:1;display:flex;flex-direction:column}
+  .stats-card-fixed-footer .data-table-wrap{flex:1;overflow-y:auto}
+  .stats-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:12px;flex-wrap:wrap}
+  .stats-card-title{font-family:var(--font-display);font-size:16px;font-weight:600;color:var(--fg)}
+  .stats-card-body{position:relative}
+  .chart-wrap{width:100%;height:280px;position:relative}
+  .chart-wrap-sm{height:200px}
+  .chart-wrap-lg{height:350px}
+
+  /* ─── number cards (A) ───────────────────────────────── */
+  .num-card{background:var(--surface);border-radius:var(--radius-lg);padding:20px 24px;box-shadow:var(--shadow-card);border:1px solid var(--border)}
+  .num-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+  .num-card-label{font-size:13px;color:var(--fg);font-weight:700}
+  .num-card-icon{width:32px;height:32px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center}
+  .num-card-icon.green{background:var(--accent-light);color:var(--accent-deep)}
+  .num-card-icon.blue{background:#dbeafe;color:#2563eb}
+  .num-card-icon.amber{background:#fef3c7;color:#d97706}
+  .num-card-icon svg{width:16px;height:16px}
+  .num-card-value{font-family:var(--font-display);font-size:28px;font-weight:600;letter-spacing:-1.5px;line-height:1.1}
+  .num-card-sub{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:13px}
+  .num-card-sub .trend-wrap{white-space:nowrap}
+  .num-card-sub .trend-up{color:var(--accent);display:inline-flex;align-items:center;gap:2px}
+  .num-card-sub .trend-down{color:var(--error);display:inline-flex;align-items:center;gap:2px}
+  .num-card-sub .trend-label{color:var(--muted-light)}
+  .num-card .percent{font-size:14px;font-weight:600;color:var(--muted);margin-left:2px}
+
+  /* ─── form elements ──────────────────────────────────── */
+  .filter-group{display:flex;align-items:center;gap:10px}
+  .form-select{padding:0 36px 0 14px;height:40px;font-family:var(--font-body);font-size:14px;color:var(--fg);background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 12px center;border:1.5px solid var(--border-md);border-radius:var(--radius-md);outline:none;cursor:pointer;-webkit-appearance:none;-moz-appearance:none;appearance:none;transition:border-color .2s,box-shadow .2s}
+  .form-select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,164,0.12)}
+  .form-btn-group{display:flex;gap:6px}
+  .chart-legend{display:flex;align-items:center;gap:12px;margin-right:12px;font-size:14px;color:var(--muted)}
+  .chart-legend-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+  .toggle-btn{padding:6px 14px;font-size:13px;font-weight:500;border-radius:var(--radius-pill);cursor:pointer;font-family:var(--font-body);background:var(--surface);color:var(--muted);border:1px solid var(--border-md);transition:all .15s}
+  .toggle-btn.active{background:var(--fg);color:#fff;border-color:var(--fg)}
+  .toggle-btn:hover:not(.active){background:var(--bg)}
+  .summary-row{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-bottom:16px}
+  .summary-card{background:var(--surface);border-radius:var(--radius-lg);padding:16px 20px;box-shadow:var(--shadow-card);border:1px solid var(--border);transition:box-shadow .2s,transform .2s;cursor:pointer}
+  .summary-card:hover{box-shadow:rgba(0,0,0,0.08) 0 8px 24px;transform:translateY(-2px)}
+  .summary-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .summary-card-label{font-size:13px;color:var(--fg);font-weight:700}
+  .summary-card-icon{width:28px;height:28px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center}
+  .summary-card-icon svg{width:14px;height:14px}
+  .summary-card-icon.green{background:var(--accent-light);color:var(--accent-deep)}
+  .summary-card-icon.blue{background:#dbeafe;color:#2563eb}
+  .summary-card-icon.amber{background:#fef3c7;color:#d97706}
+  .summary-card-icon.purple{background:#ede9fe;color:#7c3aed}
+  .stat-values{display:flex;gap:24px}
+  .stat-value{display:flex;flex-direction:column}
+  .stat-number{font-family:var(--font-display);font-size:18px;font-weight:600;letter-spacing:-0.4px;line-height:1.2}
+  .stat-unit{font-size:12px;color:var(--muted-light);margin-top:10px}
+
+  /* ─── breadcrumbs ──────────────────────────────────────────── */
+  .breadcrumbs{display:flex;align-items:center;gap:8px;padding:0 0 24px;font-family:var(--font-display);font-size:22px;font-weight:600;letter-spacing:-0.3px;color:var(--fg)}
+  .breadcrumbs-item{cursor:pointer;transition:color .15s;color:var(--muted);font-weight:400}
+  .breadcrumbs-item:hover{color:var(--fg)}
+  .breadcrumbs-item.active{color:var(--fg);font-weight:600;cursor:default}
+  .breadcrumbs-sep{color:var(--muted-light);font-size:12px}
+
+  /* ─── report detail full-card ───────────────────────────────── */
+  .detail-full-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;box-shadow:var(--shadow-card);min-height:400px;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start}
+  .detail-tabs{display:flex;gap:24px;border-bottom:1px solid var(--border-md);padding-bottom:0;margin-bottom:20px}
+  .detail-tab{font-size:16px;font-weight:500;color:var(--muted);cursor:pointer;padding-bottom:20px;border-bottom:2px solid transparent;transition:color .15s,border-color .15s;background:none;border-top:none;border-left:none;border-right:none;font-family:var(--font-body)}
+  .detail-tab:hover{color:var(--fg)}
+  .detail-tab.active{color:var(--fg);border-bottom-color:var(--accent-deep)}
+  .org-tab-content{display:none}
+  .org-tab-content.active{display:flex;flex:1;align-items:center;justify-content:center;padding:40px 0}
+  .detail-card-placeholder{display:flex;flex-direction:column;align-items:center;gap:16px;color:var(--muted-light)}
+  .detail-card-placeholder svg{width:48px;height:48px;opacity:.4}
+  .detail-card-placeholder span{font-size:15px}
+  .rate-value{font-family:var(--font-display);font-size:30px;font-weight:600;color:var(--fg);line-height:1.2;margin-bottom:2px}
+  .rate-trend{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:500;color:var(--muted-light)}
+  .rate-trend.up{color:#00d4a4}
+  .rate-trend.down{color:#ef4444}
+  .rate-trend svg{width:12px;height:12px}
+  .seg-btn{padding:7px 18px;font-size:16px;font-weight:500;border-radius:6px;cursor:pointer;font-family:var(--font-body);background:transparent;color:var(--muted);border:none;transition:all .15s}
+  .seg-btn.active{background:#0a0a0a;color:#fff}
+  .seg-btn:hover:not(.active){color:var(--fg)}
+  .detail-record-nav{margin-top: auto;padding-top: 20px;display:flex;justify-content:space-between;align-items:center}
+  .detail-record-count{font-size:13px;color:var(--muted-light)}
+  .member-pagination{display:flex;align-items:center;gap:8px}
+  .member-page-btn{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:var(--radius-md);font-size:13px;font-weight:500;cursor:pointer;font-family:var(--font-body);border:1px solid var(--border-md);background:var(--surface);color:var(--fg);transition:background .15s,border-color .15s}
+  .member-page-btn:hover{background:var(--bg)}
+  .member-page-btn.active{background:var(--fg);color:#fff;border-color:var(--fg)}
+  .member-page-btn:disabled{opacity:.4;cursor:not-allowed}
+  .cs-wrap{position:relative;display:inline-block}
+  .cs-trigger{display:flex;align-items:center;justify-content:space-between;width:100%;height:40px;padding:0 14px;font-family:var(--font-body);font-size:14px;color:var(--fg);background:var(--surface);border:1.5px solid var(--border-md);border-radius:var(--radius-md);cursor:pointer;transition:border-color .2s,box-shadow .2s;box-sizing:border-box;user-select:none}
+  .cs-trigger:hover,.cs-trigger.open{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,164,0.12)}
+  .cs-trigger svg{width:14px;height:14px;color:var(--muted-light);flex-shrink:0;transition:transform .2s;margin-left:8px}
+  .cs-trigger.open svg{transform:rotate(180deg)}
+  .cs-placeholder{color:var(--fg)}
+  .cs-dropdown{position:absolute;top:100%;left:0;right:0;z-index:50;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:0 8px 24px rgba(0,0,0,0.08),0 2px 6px rgba(0,0,0,0.04);margin-top:4px;max-height:240px;overflow-y:auto;display:none}
+  .cs-dropdown.open{display:block}
+  .cs-option{padding:10px 14px;font-size:13px;cursor:pointer;transition:background .12s}
+  .cs-option:hover{background:rgba(0,212,164,0.06)}
+  .cs-option.selected{color:var(--accent);font-weight:600}
+  .cs-divider{height:1px;background:var(--border);margin:2px 10px}
+  .trend-reset-btn{width:40px;height:40px;padding:0;display:flex;align-items:center;justify-content:center;border:1.5px solid var(--border-md);border-radius:8px;background:transparent;cursor:pointer;color:var(--muted-light);flex-shrink:0;outline:none;transition:border-color .2s,box-shadow .2s}
+  .trend-reset-btn:hover{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,164,0.12)}
+  .trend-reset-btn svg{width:16px;height:16px}
+
+  /* ─── data tables (D) ────────────────────────────────── */
+  .data-table-wrap{overflow-x:auto;margin-top:4px}
+  .data-table{width:auto;min-width:100%;border-collapse:collapse;font-size:13px}
+  .data-table th{padding:12px 14px;text-align:left;font-weight:600;color:var(--fg);font-size:14px;border-bottom:1px solid #F2F2F2;line-height:20px;vertical-align:middle}
+  .detail-type-th{position:relative;white-space:nowrap}
+  .detail-type-filter{display:inline-flex;align-items:center;vertical-align:middle;margin-left:2px}
+  .detail-type-dropdown{position:absolute;top:100%;left:0;background:var(--surface);border:1px solid var(--border-md);border-radius:var(--radius-md);padding:8px 0;z-index:10;display:none;box-shadow:0 4px 12px rgba(0,0,0,0.08);min-width:120px;max-height:280px;overflow-y:auto}
+  .detail-type-dropdown.open{display:block}
+  .detail-type-option{display:flex;align-items:center;gap:6px;padding:6px 12px;font-size:13px;font-weight:400;color:var(--fg);cursor:pointer;transition:background .15s}
+  .detail-type-option:hover{background:var(--bg)}
+  .detail-type-option input{accent-color:var(--accent-deep);width:14px;height:14px}
+  .data-table td{padding:12px 14px;border-bottom:1px solid #F2F2F2;color:var(--fg);line-height:20px;vertical-align:middle}
+  .data-table tbody tr:hover{background:rgba(0,212,164,0.03)}
+  .data-table .text-right{text-align:right}
+  .data-table .text-center{text-align:center}
+
+  .warn-level-hint{color:var(--info);font-weight:500}
+  .warn-level-caution{color:var(--warning);font-weight:500}
+  .warn-level-severe{color:var(--error);font-weight:500}
+  .warn-type-vision{color:#d97706;font-weight:500}
+  .warn-type-nocheck{color:#3b82f6;font-weight:500}
+  .data-table td.metric-low{color:#d97706;font-weight:500}
+  .data-table td.metric-high{color:#dc2626;font-weight:500}
+  .data-table td.metric-up{color:#dc2626;font-weight:500}
+  .data-table td.metric-down{color:#16a34a;font-weight:500}
+  .status-text.viewed{color:var(--accent);font-weight:500}
+  .status-text.unviewed{color:var(--warning);font-weight:500}
+  .rank-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+  .rank-dot.on{background:var(--accent)}
+  .rank-dot.off{background:var(--border-md)}
+
+  .no-data{padding:40px 0;text-align:center;color:var(--muted-light);font-size:14px}
+
+  /* ─── responsive ─────────────────────────────────────── */
+  @media(max-width:640px){
+    .sidebar{transform:translateX(-100%)}
+    .sidebar.open{transform:translateX(0)}
+    .main-wrap{margin-left:0}
+    .content{padding:12px}
+    .stats-row-3{grid-template-columns:1fr}
+    .stats-row-2,.stats-row-7030{grid-template-columns:1fr}
+  }
+  @media(min-width:641px) and (max-width:800px){
+    .sidebar{transform:translateX(-100%)}
+    .sidebar.open{transform:translateX(0)}
+    .main-wrap{margin-left:0}
+    .content{padding:16px}
+    .stats-row-3{grid-template-columns:1fr 1fr}
+    .stats-row-7030{grid-template-columns:1fr}
+    .stats-row-2{grid-template-columns:1fr}
+    .chart-legend{font-size:11px;gap:6px;margin-right:6px}
+  }
+  @media(min-width:801px) and (max-width:1100px){
+    :root{--sidebar-w:180px}
+    .content{padding:20px}
+    .chart-legend{font-size:12px;gap:8px;margin-right:8px}
+  }
+  @media(min-width:1101px) and (max-width:1400px){
+    :root{--sidebar-w:220px}
+  }
+  @media(min-width:1401px){
+    :root{--sidebar-w:260px}
+    .content{padding:32px 48px}
+  }
+</style>
+</head><body>
+
+<!-- sidebar -->
+<aside class="sidebar" id="sidebar"><div class="sidebar-logo"><div class="sidebar-logo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path></svg></div><span class="sidebar-logo-text">明瞳 · IVHMS</span></div>
+<nav class="sidebar-nav">
+<a class="sidebar-item" href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect></svg>数据概览</a>
+<a class="sidebar-item active" href="statistics.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>统计分析</a>
+<a class="sidebar-item" href="health-records.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>健康档案</a>
+<a class="sidebar-item" href="device-status.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>设备状态</a>
+</nav>
+<div class="sidebar-bottom"><div class="sidebar-user" id="sidebarUser"><div class="sidebar-avatar">远</div><span class="sidebar-username">张明远</span></div>
+<div class="sidebar-bottom-actions"><div class="sidebar-bottom-btn" id="sidebarMsgBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 01-3.46 0"></path></svg><span class="sidebar-msg-badge" id="sidebarMsgBadge">5</span></div>
+<div class="sidebar-bottom-btn" id="sidebarHelpBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></div></div></div></aside>
+
+<div class="main-wrap">
+<div class="sidebar-user-dropdown" id="userPanel">
+<a class="user-menu-item" href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>个人中心</a>
+<a class="user-menu-item" href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>管理后台</a>
+<div class="user-menu-divider"></div>
+<div class="user-menu-item danger" id="logoutBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>退出登录</div></div>
+
+<div class="sidebar-msg-panel" id="msgPanel"><div class="msg-header"><span class="msg-header-title">消息通知</span><button class="msg-clear-btn" id="msgClearBtn">全部已读</button></div>
+<div class="msg-list" id="msgList">
+<div class="msg-item"><div class="msg-item-top"><span class="msg-item-title">三年级视力筛查已完成</span><span class="msg-item-time">10:30</span></div><span class="msg-item-type">筛查通知</span></div>
+<div class="msg-item"><div class="msg-item-top"><span class="msg-item-title">训练仪 2 已离线，请检查连接</span><span class="msg-item-time">09:15</span></div><span class="msg-item-type">设备告警</span></div>
+<div class="msg-item"><div class="msg-item-top"><span class="msg-item-title">本周筛查报告已生成</span><span class="msg-item-time">昨天</span></div><span class="msg-item-type">报告通知</span></div>
+<div class="msg-item"><div class="msg-item-top"><span class="msg-item-title">新学期视力评估任务已发布</span><span class="msg-item-time">2天前</span></div><span class="msg-item-type">任务通知</span></div>
+<div class="msg-item"><div class="msg-item-top"><span class="msg-item-title">筛查终端 A 固件更新成功</span><span class="msg-item-time">3天前</span></div><span class="msg-item-type">系统通知</span></div></div>
+<div class="msg-empty" id="msgEmpty" style="display:none"><div class="msg-empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 01-3.46 0"></path></svg></div><span class="msg-empty-text">暂无消息</span></div>
+<div class="msg-footer" id="msgViewAll">查看全部消息</div></div>
+
+<div class="content">
+<div class="content-header">
+  <div class="content-title" id="pageTitle">统计分析</div>
+  <div class="breadcrumbs" id="headerBreadcrumb" style="display:none;padding:0">
+    <span class="breadcrumbs-item" id="reportBreadcrumbBack">统计分析</span>
+    <span class="breadcrumbs-sep">/</span>
+    <span class="breadcrumbs-item active" id="reportBreadcrumbName"></span>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px" id="viewToggle">
+    <button class="seg-btn active" data-view="data">数据视图</button>
+    <button class="seg-btn" data-view="report">统计报表</button>
+  </div>
+</div>
+
+<div id="dataView"><!-- 数据视图内容-->
+<div class="stats-row stats-row-3" id="aRow">
+  <div class="num-card" id="cardMyopia">
+    <div class="num-card-header">
+      <span class="num-card-label">全校近视率</span>
+      <div class="num-card-icon green">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+      </div>
+    </div>
+    <div class="num-card-value"><span id="myopiaRate">--</span><span class="percent">%</span></div>
+    <div class="num-card-sub"><span id="myopiaTrend"></span></div>
+  </div>
+  <div class="num-card" id="cardTrainRate">
+    <div class="num-card-header">
+      <span class="num-card-label">训练完成率</span>
+      <div class="num-card-icon blue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+      </div>
+    </div>
+    <div class="num-card-value"><span id="trainRate">--</span><span class="percent">%</span></div>
+    <div class="num-card-sub"><span class="trend-label" id="trainSubText">历史总计</span></div>
+  </div>
+  <div class="num-card" id="cardAvgDuration">
+    <div class="num-card-header">
+      <span class="num-card-label">平均训练时长</span>
+      <div class="num-card-icon amber">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+      </div>
+    </div>
+    <div class="num-card-value"><span id="avgDuration">--</span><span class="percent">分钟</span></div>
+    <div class="num-card-sub"><span class="trend-label" id="durationSubText">历史总计</span></div>
+  </div>
+</div>
+
+<!-- 班级柱状图 + 近视发展趋势 -->
+<div class="stats-row stats-row-2" style="margin-bottom:16px">
+<div class="stats-card">
+  <div class="stats-card-header">
+    <span class="stats-card-title">班级近视风险 & 平均训练时长</span>
+    <div class="filter-group">
+      <select class="form-select" id="bGradeSelect" style="width:120px"></select>
+      <select class="form-select" id="monthSelect" style="width:120px"></select>
+      <button type="button" id="bResetBtn" class="trend-reset-btn" title="重置筛选">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"></path></svg>
+      </button>
+    </div>
+  </div>
+  <div class="stats-card-body">
+    <div class="chart-wrap" style="height:320px"><canvas id="barChartCombined"></canvas></div>
+    <div class="chart-legend" style="justify-content:center;margin-top:20px">
+      <span class="chart-legend-dot" style="background:#3b82f6"></span>近视风险≤10%
+      <span class="chart-legend-dot" style="background:#ef4444;margin-left:4px"></span>近视风险&gt;10%
+      <span class="chart-legend-dot" style="background:#00d4a4;margin-left:8px"></span>训练时长≥20分钟
+      <span class="chart-legend-dot" style="background:#fb923c;margin-left:4px"></span>训练时长&lt;20分钟
+    </div>
+  </div>
+</div>
+
+<div class="stats-card">
+  <div class="stats-card-header">
+    <span class="stats-card-title">近视发展趋势</span>
+    <div style="display:flex;align-items:center;gap:8px">
+      <select class="form-select" id="trendGradeSelect" style="width:120px">
+        <option value="">全年级</option>
+      </select>
+      <button type="button" id="trendResetBtn" class="trend-reset-btn" title="重置筛选">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"></path></svg>
+      </button>
+    </div>
+  </div>
+  <div class="stats-card-body">
+    <div class="chart-wrap" style="height:320px"><canvas id="trendLineChart"></canvas></div>
+    <div class="chart-legend" style="justify-content:center;margin-top:20px">
+      <span class="chart-legend-dot" style="background:#fb923c"></span>近视率上升
+      <span class="chart-legend-dot" style="background:#00d4a4;margin-left:8px"></span>近视率下降
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- 近期训练 + 个体预警  -->
+<div class="stats-row stats-row-2" style="margin-bottom:16px">
+  <div class="stats-card stats-card-fixed-footer">
+    <div class="stats-card-header">
+      <span class="stats-card-title">近期训练</span>
+      <select class="form-select" id="trainViewSelect" style="width:120px">
+        <option value="grade">年级</option>
+        <option value="class">班级</option>
+      </select>
+    </div>
+    <div class="stats-card-body">
+      <div class="data-table-wrap">
+        <table class="data-table" id="trainTable"><thead><tr id="trainHeader"></tr></thead><tbody id="trainBody"></tbody></table>
+      </div>
+      <div class="detail-record-nav">
+        <span class="detail-record-count" id="trainTotal">共 0 条</span>
+        <div class="member-pagination" id="trainPagination"></div>
+      </div>
+    </div>
+  </div>
+  <div class="stats-card stats-card-fixed-footer">
+    <div class="stats-card-header">
+      <span class="stats-card-title">视力预警</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <select class="form-select" id="warnMonthSelect" style="width:120px"></select>
+        <button type="button" id="warnResetBtn" class="trend-reset-btn" title="重置筛选">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"></path></svg>
+        </button>
+      </div>
+    </div>
+    <div class="stats-card-body">
+      <div class="data-table-wrap">
+        <table class="data-table"><thead><tr>
+          <th class="detail-type-th">预警类型
+            <span class="detail-type-filter" id="warnTypeFilterIcon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;vertical-align:middle;cursor:pointer"><polygon points="22 3 2 3 10 12 10 19 14 16 14 12"></polygon></svg>
+            </span>
+            <div class="detail-type-dropdown" id="warnTypeDropdown">
+              <label class="detail-type-option"><input type="radio" name="warnTypeFilter" value="" checked>全部类型</label>
+              <label class="detail-type-option"><input type="radio" name="warnTypeFilter" value="视力下降">视力下降</label>
+              <label class="detail-type-option"><input type="radio" name="warnTypeFilter" value="长期未评估">长期未评估</label>
+            </div>
+          </th>
+          <th class="detail-type-th">预警等级
+            <span class="detail-type-filter" id="warnLevelFilterIcon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;vertical-align:middle;cursor:pointer"><polygon points="22 3 2 3 10 12 10 19 14 16 14 12"></polygon></svg>
+            </span>
+            <div class="detail-type-dropdown" id="warnLevelDropdown">
+              <label class="detail-type-option"><input type="radio" name="warnLevelFilter" value="" checked>全部等级</label>
+              <label class="detail-type-option"><input type="radio" name="warnLevelFilter" value="提示">提示</label>
+              <label class="detail-type-option"><input type="radio" name="warnLevelFilter" value="警告">警告</label>
+              <label class="detail-type-option"><input type="radio" name="warnLevelFilter" value="严重">严重</label>
+            </div>
+          </th>
+          <th>姓名</th>
+          <th style="width:180px">学号</th>
+          <th>年级-班级</th>
+          <th>预警时间</th>
+        </tr></thead><tbody id="warnBody"></tbody></table>
+      </div>
+      <div class="detail-record-nav" id="warnFooter">
+        <span class="detail-record-count" id="warnTotal">共 0 条</span>
+        <div class="member-pagination" id="warnPagination"></div>
+      </div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- 统计报表内容-->
+<div id="reportView" style="display:none">
+<!-- 卡片网格 -->
+<div id="reportSummary">
+<div class="summary-row">
+  <div class="summary-card" data-name="视力评估汇总">
+    <div class="summary-card-header">
+      <span class="summary-card-label">表格</span>
+      <div class="summary-card-icon blue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+      </div>
+    </div>
+    <div class="stat-values">
+      <div class="stat-value"><div class="stat-number">视力评估汇总</div><div class="stat-unit">说明</div></div>
+    </div>
+  </div>
+  <div class="summary-card" data-name="视力训练汇总">
+    <div class="summary-card-header">
+      <span class="summary-card-label">表格</span>
+      <div class="summary-card-icon blue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+      </div>
+    </div>
+    <div class="stat-values">
+      <div class="stat-value"><div class="stat-number">视力训练汇总</div><div class="stat-unit">说明</div></div>
+    </div>
+  </div>
+  <div class="summary-card" data-name="视力健康汇总">
+    <div class="summary-card-header">
+      <span class="summary-card-label">表格</span>
+      <div class="summary-card-icon blue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+      </div>
+    </div>
+    <div class="stat-values">
+      <div class="stat-value"><div class="stat-number">视力健康汇总</div><div class="stat-unit">说明</div></div>
+    </div>
+  </div>
+  <div class="summary-card" data-name="视力预警汇总">
+    <div class="summary-card-header">
+      <span class="summary-card-label">表格</span>
+      <div class="summary-card-icon blue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+      </div>
+    </div>
+    <div class="stat-values">
+      <div class="stat-value"><div class="stat-number">视力预警汇总</div><div class="stat-unit">说明</div></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- 详情页 -->
+<div id="reportDetail" style="display:none">
+  <div class="detail-full-card">
+    <div class="detail-tabs">
+      <button class="detail-tab active" data-tab="1">概览</button>
+      <button class="detail-tab" data-tab="2">年级</button>
+      <button class="detail-tab" data-tab="3">班级</button>
+      <button class="detail-tab" data-tab="4">个人</button>
+      <button class="detail-tab" data-tab="5">汇总  </button>
+    </div>
+    <div id="tabContent1" class="org-tab-content active">
+      <div class="detail-card-placeholder">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+        <span>视力评估概览 — 内容占位，待后续填充</span>
+      </div>
+    </div>
+    <div id="tabContent2" class="org-tab-content">
+    </div>
+  </div>
+</div>
+</div>
+
+</div></div> <!-- close content + main-wrap -->
+
+<div class="confirm-overlay" id="logoutOverlay"><div class="confirm-box"><div class="confirm-title">确认退出</div><div class="confirm-msg">确定退出登录？</div><div class="confirm-actions"><button class="confirm-btn confirm-btn-cancel" id="logoutCancel">取消</button><button class="confirm-btn confirm-btn-danger" id="logoutConfirm">退出登录</button></div></div></div>
+
+<script>
+(function(){'use strict';
+
+/* ─── sidebar ─────────────────────────────────────────────── */
+var msgPanel=document.getElementById('msgPanel'),userPanel=document.getElementById('userPanel'),sidebarUser=document.getElementById('sidebarUser'),sidebarMsgBtn=document.getElementById('sidebarMsgBtn'),sidebarHelpBtn=document.getElementById('sidebarHelpBtn');
+function closeAll(){msgPanel.classList.remove('open');userPanel.classList.remove('open');}
+sidebarUser.addEventListener('click',function(e){e.stopPropagation();var io=userPanel.classList.contains('open');closeAll();if(!io)userPanel.classList.add('open');});
+sidebarMsgBtn.addEventListener('click',function(e){e.stopPropagation();var io=msgPanel.classList.contains('open');closeAll();if(!io)msgPanel.classList.add('open');});
+sidebarHelpBtn.addEventListener('click',function(e){e.stopPropagation();closeAll();});
+document.addEventListener('click',function(e){if(!e.target.closest('.sidebar-bottom-btn')&&!e.target.closest('.sidebar-user')&&!e.target.closest('.sidebar-user-dropdown')&&!e.target.closest('.sidebar-msg-panel'))closeAll();});
+var logoutOverlay=document.getElementById('logoutOverlay');
+document.getElementById('logoutBtn').addEventListener('click',function(){closeAll();logoutOverlay.classList.add('open');});
+document.getElementById('logoutCancel').addEventListener('click',function(){logoutOverlay.classList.remove('open');});
+document.getElementById('logoutConfirm').addEventListener('click',function(){window.location.href='login.html';});
+logoutOverlay.addEventListener('click',function(e){if(e.target===logoutOverlay)logoutOverlay.classList.remove('open');});
+var msgClearBtn=document.getElementById('msgClearBtn');
+if(msgClearBtn)msgClearBtn.addEventListener('click',function(){document.getElementById('msgList').innerHTML='';var b=document.getElementById('sidebarMsgBadge');if(b){b.textContent='0';b.style.display='none';}document.getElementById('msgEmpty').style.display='';});
+var msgList=document.getElementById('msgList');
+if(msgList)msgList.addEventListener('click',function(e){var it=e.target.closest('.msg-item');if(it){it.dataset.read='true';it.style.opacity='0.5';}});
+document.getElementById('msgViewAll').addEventListener('click',function(){closeAll();window.location.href='index.html';});
+
+/* ═══ 模拟数据（按月）════════════════════════════════════ */
+var grades=['一年级','二年级','三年级','四年级','五年级','六年级'];
+var gradeClasses={};
+grades.forEach(function(g){var n=Math.floor(Math.random()*3)+2;var arr=[];for(var i=1;i<=n;i++)arr.push(g+i+'班');gradeClasses[g]=arr;});
+var surnames='张李王刘陈杨赵黄周吴郑孙'.split('');
+var allNames=['小明','思涵','宇轩','欣怡','浩然','雨萱','天宇','诗琪','博文','雅婷','凯瑞','梦瑶','逸飞','晓晨','佳慧','睿杰','思远','语嫣','铭轩','雨桐','子涵','嘉琪','天乐','诗涵','浩宇','欣然','雨轩','雅琪'];
+var shortNames=['华','明','军','强','芳','敏','静','丽','杰','伟','涛','勇','霞','燕','玲','萍'];
+
+function rand(min,max){return Math.floor(Math.random()*(max-min+1))+min;}
+
+var months=['2026-03','2026-04','2026-05','2026-06'];
+var latestMonth='2026-06';
+var monthlyRecords=[],studentId=0;
+grades.forEach(function(g){
+  var clsList=gradeClasses[g];
+  clsList.forEach(function(cls){
+    var count=rand(15,30);
+    for(var s=0;s<count;s++){
+      studentId++;
+      var gender=rand(0,1)?'男':'女';
+      var name=surnames[rand(0,surnames.length-1)]+(Math.random()<0.15?allNames[rand(0,allNames.length-1)]:shortNames[rand(0,shortNames.length-1)]);
+      var hid='HID'+String(10001+studentId);
+      // 基础视力（每月小幅波动 ±0.15）
+      var baseVision;
+      if(Math.random()>0.3){
+        baseVision=parseFloat((4.8+Math.random()*0.5).toFixed(1));
+      }else{
+        baseVision=parseFloat((3.5+Math.random()*1.5).toFixed(1));
+      }
+      if(baseVision>5.2)baseVision=5.2;
+      months.forEach(function(m){
+        var drift=(Math.random()-0.5)*0.3;
+        var vision=parseFloat((baseVision+drift).toFixed(1));
+        if(vision>5.2)vision=5.2;
+        if(vision<2.0)vision=2.0;
+        var shouldTrain=Math.random()>0.15;
+        var hasTrained=shouldTrain?Math.random()>0.25:false;
+        var duration=hasTrained?(Math.random()>0.5?rand(25,50):rand(3,15)):0;
+        monthlyRecords.push({id:hid,name:name,gender:gender,grade:g,class:cls,
+          month:m,vision:vision,shouldTrain:shouldTrain,hasTrained:hasTrained,
+          duration:duration});
+      });
+    }
+  });
+});
+
+var students=monthlyRecords.filter(function(r){return r.month===latestMonth;});
+
+// 按年级汇总（最新月份）
+var gradeData={};
+grades.forEach(function(g){
+  var gStudents=students.filter(function(s){return s.grade===g;});
+  gradeData[g]={visionValues:gStudents.map(function(s){return s.vision;}),
+    durations:gStudents.filter(function(s){return s.duration>0;}).map(function(s){return s.duration;})};
+});
+
+// 最新月份统计
+var totalVision=students.map(function(s){return s.vision;});
+var totalMyopia=totalVision.filter(function(v){return v<4.0;}).length;
+var myopiaRate=students.length?totalMyopia/students.length*100:0;
+var totalShouldTrain=students.filter(function(s){return s.shouldTrain;}).length;
+var totalHasTrained=students.filter(function(s){return s.hasTrained;}).length;
+var trainRate=totalShouldTrain?totalHasTrained/totalShouldTrain*100:0;
+var allDurations=students.filter(function(s){return s.duration>0;}).map(function(s){return s.duration;});
+var avgDuration=allDurations.length?allDurations.reduce(function(a,b){return a+b;},0)/allDurations.length:0;
+var prevMyopia=myopiaRate*(0.85+Math.random()*0.3);
+var myopiaChange=prevMyopia?((myopiaRate-prevMyopia)/prevMyopia*100):0;
+var isUp=myopiaChange>0;
+
+// 按月份获取数据
+function getMonthStudents(month){return monthlyRecords.filter(function(r){return r.month===month;});}
+
+// 年级级指标
+function getGradeStat(grade){
+  var gd=gradeData[grade];
+  var total=gd.visionValues.length;
+  var myo=gd.visionValues.filter(function(v){return v<4.0;}).length;
+  var rate=total?myo/total*100:0;
+  var dur=gd.durations.length?gd.durations.reduce(function(a,b){return a+b;},0)/gd.durations.length:0;
+  return {myopiaRate:rate,avgDuration:dur};
+}
+
+/* ─── 填充 A 卡片 ─────────────────────────────────────── */
+document.getElementById('myopiaRate').textContent=myopiaRate.toFixed(1);
+var trendEl=document.getElementById('myopiaTrend');
+trendEl.innerHTML='<span class="trend-wrap '+(isUp?'trend-up':'trend-down')+'">环比 '+Math.abs(myopiaChange).toFixed(2)+'% '+(isUp?'↗':'↘')+'</span>';
+document.getElementById('trainRate').textContent=trainRate.toFixed(1);
+document.getElementById('avgDuration').textContent=avgDuration.toFixed(0);
+
+/* ─── 月份选择 ────────────────────────────────────────── */
+var monthSelect=document.getElementById('monthSelect');
+var allMonthOpt=document.createElement('option');allMonthOpt.value='';allMonthOpt.textContent='全年';monthSelect.appendChild(allMonthOpt);
+for(var mi=3;mi<=6;mi++){var op=document.createElement('option');op.value=mi;op.textContent=mi+'月';monthSelect.appendChild(op);}
+
+/* ─── B Chart.js 双向柱状图（班级纬度）─────────────────── */
+var bGradeSelect=document.getElementById('bGradeSelect');
+var bAllOpt=document.createElement('option');bAllOpt.value='';bAllOpt.textContent='全年级';bGradeSelect.appendChild(bAllOpt);
+grades.forEach(function(g){var op=document.createElement('option');op.value=g;op.textContent=g;bGradeSelect.appendChild(op);});
+
+/* ─── 自定义下拉转换 ────────────────────────────────── */
+function convertSelectToCustom(sel){
+  var wrap=document.createElement('div');wrap.className='cs-wrap';wrap.style.width=sel.style.width||'120px';
+  var trigger=document.createElement('div');trigger.className='cs-trigger';
+  var txt=document.createElement('span');txt.className='cs-placeholder';txt.textContent=sel.options[sel.selectedIndex]?sel.options[sel.selectedIndex].text:'';
+  trigger.appendChild(txt);
+  trigger.innerHTML+='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
+  sel.style.display='none';sel.parentNode.insertBefore(wrap,sel);wrap.appendChild(trigger);wrap.appendChild(sel);
+  var dropdown=document.createElement('div');dropdown.className='cs-dropdown';wrap.appendChild(dropdown);
+  function refreshOptions(){
+    dropdown.innerHTML='';
+    for(var i=0;i<sel.options.length;i++){
+      var opt=sel.options[i],item=document.createElement('div');item.className='cs-option'+(opt.selected?' selected':'');
+      item.textContent=opt.text;item.dataset.value=opt.value;
+      item.addEventListener('click',function(e){e.stopPropagation();
+        sel.value=this.dataset.value;sel.dispatchEvent(new Event('change'));
+        trigger.querySelector('span').textContent=this.textContent;
+        trigger.querySelector('span').className='';
+        dropdown.querySelectorAll('.cs-option').forEach(function(o){o.classList.remove('selected');});
+        this.classList.add('selected');
+        dropdown.classList.remove('open');
+      });
+      dropdown.appendChild(item);
+      /* divider after the first option (全年级 / 全年) */
+      if(i===0){var sep=document.createElement('div');sep.className='cs-divider';dropdown.appendChild(sep);}
+    }
+    trigger.querySelector('span').textContent=sel.options[sel.selectedIndex]?sel.options[sel.selectedIndex].text:'';
+    trigger.querySelector('span').className=sel.value?'' : 'cs-placeholder';
+  }
+  refreshOptions();
+  trigger.addEventListener('click',function(e){e.stopPropagation();
+    var isOpen=dropdown.classList.contains('open');
+    document.querySelectorAll('.cs-dropdown.open').forEach(function(d){d.classList.remove('open');document.querySelectorAll('.cs-trigger.open').forEach(function(t){t.classList.remove('open');});});
+    if(!isOpen){dropdown.classList.add('open');trigger.classList.add('open');refreshOptions();}
+  });
+  document.addEventListener('click',function(){dropdown.classList.remove('open');trigger.classList.remove('open');});
+  sel.addEventListener('csRefresh',refreshOptions);
+}
+convertSelectToCustom(bGradeSelect);
+convertSelectToCustom(monthSelect);
+
+function getClassStat(cls,month){
+  var src;
+  if(month==='')src=monthlyRecords;
+  else src=month?getMonthStudents(month):students;
+  var clsStudents=src.filter(function(s){return s.class===cls;});
+  var total=clsStudents.length;
+  var myo=clsStudents.filter(function(s){return s.vision<4.0;}).length;
+  var rate=total?Math.max(myo/total*100,5):5;
+  var durs=clsStudents.filter(function(s){return s.duration>0;}).map(function(s){return s.duration;});
+  var avgDur=durs.length?durs.reduce(function(a,b){return a+b;},0)/durs.length:0;
+  return {myopiaRate:rate,avgDuration:avgDur};
+}
+
+function getBData(gradeFilter,month){
+  var clsList=[];
+  if(gradeFilter){
+    (gradeClasses[gradeFilter]||[]).forEach(function(c){clsList.push(c);});
+  }else{
+    grades.forEach(function(g){(gradeClasses[g]||[]).forEach(function(c){clsList.push(c);});});
+  }
+  var labels=clsList.map(function(c){return c;});
+  var stats=clsList.map(function(c){return getClassStat(c,month);});
+  var myopiaRates=stats.map(function(s){return parseFloat(s.myopiaRate.toFixed(1));});
+  var avgDurs=stats.map(function(s){return parseFloat(s.avgDuration.toFixed(0));});
+  return {labels:labels,myopiaRates:myopiaRates,avgDurs:avgDurs};
+}
+
+var barCtx=document.getElementById('barChartCombined').getContext('2d');
+  var barChart;
+
+function initBarChart(gradeFilter,month){
+  if(barChart)barChart.destroy();
+  var bData=getBData(gradeFilter,month);
+  if(!bData.labels.length){barChart=null;return;}
+  var durNeg=bData.avgDurs.map(function(v){return -v;});
+  var maxDur=Math.max.apply(null,bData.avgDurs)||1;
+  var axisMin=-Math.min(Math.ceil(maxDur*1.2/10)*10,60);
+  var myopiaColors=bData.myopiaRates.map(function(v){return v>10?'rgba(239,68,68,0.75)':'rgba(59,130,246,0.75)';});
+  var myopiaBorders=bData.myopiaRates.map(function(v){return v>10?'rgba(239,68,68,1)':'rgba(59,130,246,1)';});
+  var durColors=bData.avgDurs.map(function(v){return v<20?'rgba(251,146,60,0.7)':'rgba(0,212,164,0.75)';});
+  var durBorders=bData.avgDurs.map(function(v){return v<20?'rgba(251,146,60,1)':'rgba(0,212,164,1)';});
+  barChart=new Chart(barCtx,{
+    type:'bar',
+    data:{
+      labels:bData.labels,
+      datasets:[
+        {
+          label:'近视率',
+          data:bData.myopiaRates,
+          backgroundColor:myopiaColors,
+          borderColor:myopiaBorders,
+          borderWidth:1,
+          borderRadius:4,
+          borderSkipped:'start'
+        },
+        {
+          label:'平均训练时长',
+          data:durNeg,
+          backgroundColor:durColors,
+          borderColor:durBorders,
+          borderWidth:1,
+          borderRadius:4,
+          borderSkipped:'start'
+        }
+      ]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          boxWidth:0,
+          boxHeight:0,
+          callbacks:{
+            label:function(ctx){
+              var v=ctx.parsed.y;
+              if(ctx.datasetIndex===0)return ctx.dataset.label+': '+v+'%';
+              return ctx.dataset.label+': '+Math.abs(v)+'分钟';
+            }
+          }
+        }
+      },
+      scales:{
+        x:{
+          stacked:true,
+          grid:{display:false},
+          border:{display:false},
+          ticks:{font:{size:11}}
+        },
+        y:{
+          grid:{display:true,color:'rgba(0,0,0,0.06)'},
+          border:{display:false},
+          ticks:{display:false},
+          min:axisMin,
+          max:50
+        }
+      }
+    }
+  });
+}
+var currentBMonth='';
+initBarChart('',currentBMonth);
+bGradeSelect.addEventListener('change',function(){initBarChart(this.value,currentBMonth);});
+monthSelect.addEventListener('change',function(){
+  currentBMonth=this.value===''?'':('2026-'+String(this.value).padStart(2,'0'));
+  initBarChart(bGradeSelect.value,currentBMonth);
+});
+
+/* ─── 近视发展趋势折线图 ───────────────────────────── */
+var trendSessions = ['2026-03-05','2026-03-12','2026-03-19','2026-03-26','2026-04-02','2026-04-09','2026-04-16','2026-04-23','2026-04-30','2026-05-07'];
+var trendGradeData = {
+  '':      [3, -1, 4, 6, 9, 12, 10, 7, 4, 1],
+  '一年级': [-2, -4, -6, -8, -10, -12, -14, -16, -18, -20],
+  '二年级': [-1, -4, -2, -6, -3, -8, -5, -10, -7, -12],
+  '三年级': [1, -3, 2, -5, 0, -7, -2, -9, -4, -11],
+  '四年级': [1, 3, -1, 5, 2, 7, 4, 9, 6, 11],
+  '五年级': [2, 5, 7, 10, 12, 14, 16, 18, 20, 22],
+  '六年级': [2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
+};
+
+var trendCtx = document.getElementById('trendLineChart').getContext('2d');
+
+var crosshairPlugin = {
+  id: 'crosshair',
+  afterDraw: function(chart) {
+    if(chart.tooltip._active && chart.tooltip._active.length){
+      var x = chart.tooltip._active[0].element.x;
+      var ctx = chart.ctx;
+      ctx.save();
+      ctx.beginPath();
+      ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+      ctx.lineWidth = 1;
+      ctx.moveTo(x, chart.chartArea.top);
+      ctx.lineTo(x, chart.chartArea.bottom);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+};
+
+var trendChart = new Chart(trendCtx, {
+  type: 'line',
+  data: {
+    labels: trendSessions,
+    datasets: [{
+      label: '近视率变化',
+      data: trendGradeData[''],
+      borderColor: '#f97316',
+      backgroundColor: function(ctx){
+        if(!ctx.chart.chartArea) return 'rgba(249,115,22,0.08)';
+        var chartArea = ctx.chart.chartArea;
+        var yScale = ctx.chart.scales.y;
+        var zeroY = yScale.getPixelForValue(0);
+        var grad = ctx.chart.ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+        var ratio = Math.max(0, Math.min(1, (zeroY - chartArea.top) / (chartArea.bottom - chartArea.top)));
+        grad.addColorStop(0, 'rgba(249,115,22,0.08)');
+        grad.addColorStop(ratio, 'rgba(249,115,22,0.08)');
+        grad.addColorStop(ratio, 'rgba(0,212,164,0.15)');
+        grad.addColorStop(1, 'rgba(0,212,164,0.15)');
+        return grad;
+      },
+      borderWidth: 2,
+      pointBackgroundColor: function(ctx){
+        return ctx.parsed && ctx.parsed.y < 0 ? '#00d4a4' : '#f97316';
+      },
+      pointBorderColor: '#fff',
+      pointBorderWidth: 2,
+      pointRadius: 6,
+      pointHoverRadius: 8,
+      tension: 0.35,
+      fill: true,
+      segment: {
+        borderColor: function(ctx){
+          if(ctx.p1 && ctx.p1.parsed && ctx.p1.parsed.y < 0) return '#00d4a4';
+          return '#f97316';
+        }
+      }
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: {intersect: false, mode: 'index'},
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        displayColors: false,
+        backgroundColor: 'rgba(0,0,0,0.85)',
+        titleFont: { size: 12, family: "'Inter',sans-serif" },
+        bodyFont: { size: 12, family: "'Inter',sans-serif" },
+        padding: 10,
+        cornerRadius: 8,
+        callbacks: {
+          title: function(items) {
+            return '评估时间：' + items[0].label;
+          },
+          label: function(ctx) {
+            var v = ctx.parsed.y;
+            return '近视率变化: ' + (v > 0 ? '上升' : v < 0 ? '下降' : '') + v + '%';
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: { font: { size: 11, family: "'Inter',sans-serif" }, color: '#888' }
+      },
+        y: {
+          min: -30,
+          max: 30,
+          grid: { color: 'rgba(0,0,0,0.05)', drawBorder: false },
+          border: { display: false },
+          ticks: {
+            font: { size: 11, family: "'Inter',sans-serif" },
+            color: '#888',
+            stepSize: 10,
+          callback: function(val) { return val === 0 ? '' : (val >= 0 ? '+' : '') + val + '%'; }
+        }
+      }
+    }
+  },
+  plugins: [crosshairPlugin]
+});
+
+var trendGradeSelect = document.getElementById('trendGradeSelect');
+var trendGrades = ['一年级','二年级','三年级','四年级','五年级','六年级'];
+trendGrades.forEach(function(g){
+  var op = document.createElement('option');
+  op.value = g; op.textContent = g;
+  trendGradeSelect.appendChild(op);
+});
+convertSelectToCustom(trendGradeSelect);
+trendGradeSelect.addEventListener('change', function(){
+  var data = trendGradeData[this.value] || trendGradeData[''];
+  trendChart.data.datasets[0].data = data;
+  trendChart.update();
+});
+
+// 重置按钮
+document.getElementById('trendResetBtn').addEventListener('click', function(){
+  trendGradeSelect.value = '';
+  trendGradeSelect.dispatchEvent(new Event('csRefresh'));
+  var data = trendGradeData[''];
+  trendChart.data.datasets[0].data = data;
+  trendChart.update();
+});
+
+// 班级近视率 & 平均训练时长 重置按钮
+document.getElementById('bResetBtn').addEventListener('click', function(){
+  bGradeSelect.value = '';
+  bGradeSelect.dispatchEvent(new Event('csRefresh'));
+  monthSelect.value = '';
+  monthSelect.dispatchEvent(new Event('csRefresh'));
+  currentBMonth = '';
+  initBarChart('', '');
+});
+
+// 数据视图 / 统计报表 切换
+var dataView=document.getElementById('dataView');
+var reportView=document.getElementById('reportView');
+document.querySelectorAll('.seg-btn[data-view]').forEach(function(btn){
+  btn.addEventListener('click',function(){
+    document.querySelectorAll('.seg-btn[data-view]').forEach(function(b){b.classList.remove('active');});
+    this.classList.add('active');
+    if(this.dataset.view==='data'){
+      dataView.style.display='';reportView.style.display='none';
+      document.getElementById('pageTitle').style.display='';
+      document.getElementById('headerBreadcrumb').style.display='none';
+      document.getElementById('viewToggle').style.display='';
+    }
+    else{
+      dataView.style.display='none';reportView.style.display='';
+      // 切回统计报表时重置到卡片网格
+      document.getElementById('reportDetail').style.display='none';
+      document.getElementById('reportSummary').style.display='';
+      document.getElementById('pageTitle').style.display='';
+      document.getElementById('headerBreadcrumb').style.display='none';
+      document.getElementById('viewToggle').style.display='';
+    }
+  });
+});
+
+// 统计报表卡片点击 → 详情页
+var reportDetail=document.getElementById('reportDetail');
+var reportSummary=document.getElementById('reportSummary');
+var reportBreadcrumbName=document.getElementById('reportBreadcrumbName');
+var headerBreadcrumb=document.getElementById('headerBreadcrumb');
+document.querySelectorAll('#reportSummary .summary-card').forEach(function(card){
+  card.addEventListener('click', function(){
+    reportBreadcrumbName.textContent = '统计报表 - ' + this.dataset.name;
+    reportSummary.style.display = 'none';
+    reportDetail.style.display = '';
+    document.getElementById('pageTitle').style.display = 'none';
+    headerBreadcrumb.style.display = '';
+    document.getElementById('viewToggle').style.display = 'none';
+  });
+});
+
+// 面包屑返回
+document.getElementById('reportBreadcrumbBack').addEventListener('click', function(){
+  reportDetail.style.display = 'none';
+  reportSummary.style.display = '';
+  document.getElementById('pageTitle').style.display = '';
+  headerBreadcrumb.style.display = 'none';
+  document.getElementById('viewToggle').style.display = '';
+});
+
+/* ─── 报表详情 Tab 切换 ────────────────────────────── */
+var detailTabs = document.querySelectorAll('#reportDetail .detail-tab');
+var tabContents = {
+  1: document.getElementById('tabContent1'),
+  2: document.getElementById('tabContent2')
+};
+detailTabs.forEach(function(tab){
+  tab.addEventListener('click', function(){
+    detailTabs.forEach(function(t){ t.classList.remove('active'); });
+    this.classList.add('active');
+    var tabId = this.dataset.tab;
+    Object.keys(tabContents).forEach(function(id){
+      tabContents[id].classList.remove('active');
+    });
+    tabContents[tabId].classList.add('active');
+  });
+});
+
+/* ─── D1 近期训练 ──────────────────────────────────────── */
+var prevMonth=months[Math.max(0,months.indexOf(latestMonth)-1)]; // 上月
+
+function getMyopiaRate(month,grade,cls){
+  var filtered=monthlyRecords.filter(function(r){return r.month===month&&r.grade===grade;});
+  if(cls)filtered=filtered.filter(function(r){return r.class===cls;});
+  var total=filtered.length;
+  if(!total)return 0;
+  return filtered.filter(function(r){return r.vision<4.0;}).length/total*100;
+}
+var trainView='grade';
+var trainHeader=document.getElementById('trainHeader');
+var trainBody=document.getElementById('trainBody');
+var trainViewSelect=document.getElementById('trainViewSelect');
+var trainPage=1;
+var trainPageSize=10;
+var trainDates=['2026-06-01','2026-06-08','2026-06-15','2026-06-22','2026-06-29'];
+var trainDateFilterValue=trainDates[trainDates.length-1];
+var cachedGradeTrainData=null;
+var cachedClassTrainData=null;
+
+function getGradeTrainData(){
+  var result=[];
+  grades.forEach(function(g){
+    var gd=gradeData[g];
+    var baseTotal=gd.visionValues.length;
+    var baseMyo=gd.visionValues.filter(function(v){return v<4.0;}).length;
+    var baseRate=baseTotal?baseMyo/baseTotal*100:0;
+    var baseDur=gd.durations.length?gd.durations.reduce(function(a,b){return a+b;},0)/gd.durations.length:0;
+    var baseTrained=students.filter(function(s){return s.grade===g&&s.hasTrained;}).length;
+    var prevMyo=getMyopiaRate(prevMonth,g);
+    trainDates.forEach(function(date,idx){
+      // 每个日期在基础值上小幅波动，模拟不同训练批次
+      var dayFactor=1+(Math.random()-0.5)*0.2;
+      var myoRate=Math.min(Math.max(baseRate*dayFactor,5),80);
+      var durFactor=1+(Math.random()-0.5)*0.3;
+      var avgDur=Math.max(Math.round(baseDur*durFactor),5);
+      var trainedFactor=0.6+Math.random()*0.4;
+      var trained=Math.max(Math.round(baseTrained*trainedFactor),2);
+      var change=parseFloat((myoRate-prevMyo).toFixed(1));
+      result.push({date:date,grade:g,class:'--',trained:trained,avgDur:avgDur,myopiaRate:parseFloat(myoRate.toFixed(1)),myopiaChange:change});
+    });
+  });
+  return result;
+}
+
+function getClassTrainData(){
+  var result=[];
+  grades.forEach(function(g){
+    var clsList=gradeClasses[g]||[];
+    clsList.forEach(function(cls){
+      var clsStudents=students.filter(function(s){return s.class===cls;});
+      var baseTotal=clsStudents.length;
+      var baseMyo=clsStudents.filter(function(s){return s.vision<4.0;}).length;
+      var baseRate=baseTotal?baseMyo/baseTotal*100:0;
+      var durs=clsStudents.filter(function(s){return s.duration>0;}).map(function(s){return s.duration;});
+      var baseDur=durs.length?durs.reduce(function(a,b){return a+b;},0)/durs.length:0;
+      var baseTrained=clsStudents.filter(function(s){return s.hasTrained;}).length;
+      var prevMyo=getMyopiaRate(prevMonth,g,cls);
+      trainDates.forEach(function(date,idx){
+        var dayFactor=1+(Math.random()-0.5)*0.2;
+        var myoRate=Math.min(Math.max(baseRate*dayFactor,5),85);
+        var durFactor=1+(Math.random()-0.5)*0.3;
+        var avgDur=Math.max(Math.round(baseDur*durFactor),3);
+        var trainedFactor=0.5+Math.random()*0.5;
+        var trained=Math.max(Math.round(baseTrained*trainedFactor),1);
+        var change=parseFloat((myoRate-prevMyo).toFixed(1));
+        result.push({date:date,grade:g,class:cls,trained:trained,avgDur:avgDur,myopiaRate:parseFloat(myoRate.toFixed(1)),myopiaChange:change});
+      });
+    });
+  });
+  return result;
+}
+
+function renderTrainTable(view,forceRefresh){
+  if(forceRefresh||!cachedGradeTrainData)cachedGradeTrainData=getGradeTrainData();
+  if(forceRefresh||!cachedClassTrainData)cachedClassTrainData=getClassTrainData();
+  var data=view==='grade'?cachedGradeTrainData:cachedClassTrainData;
+  if(trainDateFilterValue)data=data.filter(function(r){return r.date===trainDateFilterValue;});
+  var total=data.length;
+  var totalPages=Math.max(Math.ceil(total/trainPageSize),1);
+  if(trainPage>totalPages)trainPage=totalPages;
+  if(trainPage<1)trainPage=1;
+  var start=(trainPage-1)*trainPageSize;
+  var end=Math.min(start+trainPageSize,total);
+  var pageData=data.slice(start,end);
+
+  if(view==='grade'){
+    trainHeader.innerHTML='<th class="detail-type-th">近期训练时间<span class="detail-type-filter" id="trainDateFilterIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;vertical-align:middle;cursor:pointer"><polygon points="22 3 2 3 10 12 10 19 14 16 14 12"></polygon></svg></span><div class="detail-type-dropdown" id="trainDateDropdown"></div></th><th>年级</th><th>训练人数</th><th>平均时长</th><th>平均近视率</th><th>环比</th>';
+    trainBody.innerHTML=pageData.map(function(r){
+      var durCls=r.avgDur<20?' style="color:#d97706;font-weight:500"':'';
+      var myoCls=r.myopiaRate>10?' style="color:#dc2626;font-weight:500"':'';
+      var arrow=r.myopiaChange>0?'↗':'↘';
+      var arrowStyle=r.myopiaChange>0?' style="color:#dc2626;font-weight:500"':r.myopiaChange<0?' style="color:#16a34a;font-weight:500"':'';
+      var changeText=r.myopiaChange!==0?Math.abs(r.myopiaChange).toFixed(1)+'% '+arrow:'-';
+      return '<tr><td>'+r.date+'</td><td>'+r.grade+'</td><td>'+r.trained+'</td><td'+durCls+'>'+r.avgDur+'</td><td'+myoCls+'>'+r.myopiaRate+'%</td><td'+arrowStyle+'>'+changeText+'</td></tr>';
+    }).join('');
+  } else {
+    trainHeader.innerHTML='<th class="detail-type-th">近期训练时间<span class="detail-type-filter" id="trainDateFilterIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;vertical-align:middle;cursor:pointer"><polygon points="22 3 2 3 10 12 10 19 14 16 14 12"></polygon></svg></span><div class="detail-type-dropdown" id="trainDateDropdown"></div></th><th>年级</th><th>班级</th><th>训练人数</th><th>平均时长</th><th>平均近视率</th><th>环比</th>';
+    trainBody.innerHTML=pageData.map(function(r){
+      var durCls=r.avgDur<20?' style="color:#d97706;font-weight:500"':'';
+      var myoCls=r.myopiaRate>10?' style="color:#dc2626;font-weight:500"':'';
+      var arrow=r.myopiaChange>0?'↗':'↘';
+      var arrowStyle=r.myopiaChange>0?' style="color:#dc2626;font-weight:500"':r.myopiaChange<0?' style="color:#16a34a;font-weight:500"':'';
+      var changeText=r.myopiaChange!==0?Math.abs(r.myopiaChange).toFixed(1)+'% '+arrow:'-';
+      return '<tr><td>'+r.date+'</td><td>'+r.grade+'</td><td>'+r.class.replace(r.grade,'')+'</td><td>'+r.trained+'</td><td'+durCls+'>'+r.avgDur+'</td><td'+myoCls+'>'+r.myopiaRate+'%</td><td'+arrowStyle+'>'+changeText+'</td></tr>';
+    }).join('');
+  }
+
+  document.getElementById('trainTotal').textContent='共 '+total+' 条';
+  var pag=document.getElementById('trainPagination');
+  pag.innerHTML='';
+  var prevBtn=document.createElement('button');
+  prevBtn.className='member-page-btn';prevBtn.textContent='‹';
+  prevBtn.disabled=trainPage===1;
+  prevBtn.addEventListener('click',function(){trainPage--;renderTrainTable(trainView);});
+  pag.appendChild(prevBtn);
+  for(var p=1;p<=totalPages;p++){
+    (function(pg){
+      var btn=document.createElement('button');
+      btn.className='member-page-btn'+(pg===trainPage?' active':'');
+      btn.textContent=pg;
+      btn.addEventListener('click',function(){trainPage=pg;renderTrainTable(trainView);});
+      pag.appendChild(btn);
+    })(p);
+  }
+  var nextBtn=document.createElement('button');
+  nextBtn.className='member-page-btn';nextBtn.textContent='›';
+  nextBtn.disabled=trainPage===totalPages;
+  nextBtn.addEventListener('click',function(){trainPage++;renderTrainTable(trainView);});
+  pag.appendChild(nextBtn);
+  initTrainDateFilter();
+}
+renderTrainTable(trainViewSelect.value);
+convertSelectToCustom(trainViewSelect);
+trainViewSelect.addEventListener('change',function(){
+  trainView=this.value;
+  trainPage=1;
+  renderTrainTable(trainView);
+});
+
+// 训练时间筛选初始化
+function initTrainDateFilter(){
+  var icon=document.getElementById('trainDateFilterIcon');
+  var dd=document.getElementById('trainDateDropdown');
+  if(!icon||!dd)return;
+  // 填充下拉选项
+  dd.innerHTML='';
+  trainDates.slice().reverse().forEach(function(d){
+    var label=document.createElement('label');label.className='detail-type-option';
+    var radio=document.createElement('input');radio.type='radio';radio.name='trainDateFilter';radio.value=d;radio.checked=trainDateFilterValue===d;
+    label.appendChild(radio);label.appendChild(document.createTextNode(d));dd.appendChild(label);
+  });
+  // 绑定点击事件
+  icon.onclick=function(e){e.stopPropagation();
+    document.querySelectorAll('.detail-type-dropdown.open').forEach(function(d){d.classList.remove('open');});
+    dd.classList.toggle('open');
+  };
+  dd.onclick=function(e){e.stopPropagation();};
+  dd.querySelectorAll('input[type="radio"]').forEach(function(radio){
+    radio.onchange=function(){trainDateFilterValue=this.value;trainPage=1;dd.classList.remove('open');renderTrainTable(trainView);};
+  });
+}
+initTrainDateFilter();
+
+/* ─── D2 视力预警（筛选 + 分页）─────────────────────── */
+var warnTypes=['视力下降','视力下降','视力下降','长期未评估','长期未评估'];
+var warnLevels=[{name:'提示',cls:'hint'},{name:'警告',cls:'caution'},{name:'严重',cls:'severe'}];
+var warnStatuses=['家长已查看','家长未查看'];
+var warnBody=document.getElementById('warnBody');
+
+function genWarnings(count){
+  count=count||30;
+  var warns=[];
+  for(var i=0;i<count;i++){
+    var idx=rand(0,students.length-1);
+    var s=students[idx];
+    var type=warnTypes[rand(0,warnTypes.length-1)];
+    var lv=warnLevels[rand(0,warnLevels.length-1)];
+    var month=rand(3,6);var day=rand(1,28);
+    var status=warnStatuses[rand(0,1)];
+    var maskedName='*'+s.name.slice(1);
+    warns.push({masked:maskedName,grade:s.grade,classStr:s.class,type:type,level:lv,time:'2026-0'+month+'-'+String(day).padStart(2,'0'),status:status,studentNo:'2026'+String(1001+idx).slice(-4),healthId:s.id});
+  }
+  warns.sort(function(a,b){return b.time.localeCompare(a.time);});
+  return warns;
+}
+var warnings=genWarnings(30);
+var warnPage=1;
+var warnTypeFilterValue='';
+var warnLevelFilterValue='';
+var warnMonthFilterValue='';
+
+// 月份筛选下拉
+var warnMonthSelect=document.getElementById('warnMonthSelect');
+var allWarnMonth=document.createElement('option');allWarnMonth.value='';allWarnMonth.textContent='全年';warnMonthSelect.appendChild(allWarnMonth);
+for(var wm=3;wm<=6;wm++){var op=document.createElement('option');op.value='2026-0'+wm;op.textContent=wm+'月';warnMonthSelect.appendChild(op);}
+convertSelectToCustom(warnMonthSelect);
+
+function renderWarnTable(){
+  var filtered=warnings;
+  if(warnTypeFilterValue)filtered=filtered.filter(function(w){return w.type===warnTypeFilterValue;});
+  if(warnLevelFilterValue)filtered=filtered.filter(function(w){return w.level.name===warnLevelFilterValue;});
+  if(warnMonthFilterValue)filtered=filtered.filter(function(w){return w.time.startsWith(warnMonthFilterValue);});
+  var total=filtered.length;
+  var totalPages=Math.max(Math.ceil(total/10),1);
+  if(warnPage>totalPages)warnPage=totalPages;
+  if(warnPage<1)warnPage=1;
+  var start=(warnPage-1)*10;
+  var end=Math.min(start+10,total);
+  warnBody.innerHTML=filtered.slice(start,end).map(function(w){
+    var typeCls=w.type==='视力下降'?'warn-type-vision':'warn-type-nocheck';
+    return '<tr><td><span class="'+typeCls+'">'+w.type+'</span></td><td><span class="warn-level-'+w.level.cls+'">'+w.level.name+'</span></td><td>'+w.masked+'</td><td>'+w.studentNo+'</td><td>'+w.grade+' - '+w.classStr.replace(w.grade,'')+'</td><td>'+w.time+'</td></tr>';
+  }).join('');
+  document.getElementById('warnTotal').textContent='共 '+total+' 条';
+
+  // 分页按钮
+  var pag=document.getElementById('warnPagination');
+  pag.innerHTML='';
+  var prevBtn=document.createElement('button');
+  prevBtn.className='member-page-btn';
+  prevBtn.textContent='‹';
+  prevBtn.disabled=warnPage===1;
+  prevBtn.addEventListener('click',function(){warnPage--;renderWarnTable();});
+  pag.appendChild(prevBtn);
+
+  for(var p=1;p<=totalPages;p++){
+    (function(pg){
+      var btn=document.createElement('button');
+      btn.className='member-page-btn'+(pg===warnPage?' active':'');
+        btn.textContent=pg;
+        btn.addEventListener('click',function(){warnPage=pg;renderWarnTable();});
+        pag.appendChild(btn);
+      })(p);
+    }
+
+    var nextBtn=document.createElement('button');
+    nextBtn.className='member-page-btn';
+    nextBtn.textContent='›';
+    nextBtn.disabled=warnPage===totalPages;
+    nextBtn.addEventListener('click',function(){warnPage++;renderWarnTable();});
+    pag.appendChild(nextBtn);
+}
+renderWarnTable();
+
+// 类型筛选（列头图标+下拉）
+var warnTypeFilterIcon=document.getElementById('warnTypeFilterIcon');
+var warnTypeDropdown=document.getElementById('warnTypeDropdown');
+warnTypeFilterIcon.addEventListener('click',function(e){e.stopPropagation();document.querySelectorAll('.detail-type-dropdown.open').forEach(function(d){d.classList.remove('open');});warnTypeDropdown.classList.toggle('open');});
+warnTypeDropdown.addEventListener('click',function(e){e.stopPropagation();});
+document.addEventListener('click',function(){document.querySelectorAll('.detail-type-dropdown.open').forEach(function(d){d.classList.remove('open');});});
+warnTypeDropdown.querySelectorAll('input[name="warnTypeFilter"]').forEach(function(radio){
+  radio.addEventListener('change',function(){warnTypeFilterValue=this.value;warnPage=1;warnTypeDropdown.classList.remove('open');renderWarnTable();});
+});
+
+// 等级筛选（列头图标+下拉）
+var warnLevelFilterIcon=document.getElementById('warnLevelFilterIcon');
+var warnLevelDropdown=document.getElementById('warnLevelDropdown');
+warnLevelFilterIcon.addEventListener('click',function(e){e.stopPropagation();document.querySelectorAll('.detail-type-dropdown.open').forEach(function(d){d.classList.remove('open');});warnLevelDropdown.classList.toggle('open');});
+warnLevelDropdown.addEventListener('click',function(e){e.stopPropagation();});
+warnLevelDropdown.querySelectorAll('input[name="warnLevelFilter"]').forEach(function(radio){
+  radio.addEventListener('change',function(){warnLevelFilterValue=this.value;warnPage=1;warnLevelDropdown.classList.remove('open');renderWarnTable();});
+});
+
+// 月份筛选
+warnMonthSelect.addEventListener('change',function(){warnMonthFilterValue=this.value;warnPage=1;renderWarnTable();});
+
+// 视力预警重置按钮
+document.getElementById('warnResetBtn').addEventListener('click', function(){
+  warnMonthSelect.value = '';
+  warnMonthSelect.dispatchEvent(new Event('csRefresh'));
+  warnMonthFilterValue = '';
+  warnTypeFilterValue = '';
+  warnLevelFilterValue = '';
+  warnPage = 1;
+  document.querySelectorAll('#warnTypeDropdown input[type="radio"]').forEach(function(r){r.checked = r.value === '';});
+  document.querySelectorAll('#warnLevelDropdown input[type="radio"]').forEach(function(r){r.checked = r.value === '';});
+  renderWarnTable();
+});
+
+// 类型/等级筛选（列头图标+下拉）
+function populateDropdown(id,opts){
+  var dd=document.getElementById(id);dd.innerHTML='';
+  opts.forEach(function(pair){
+    var label=document.createElement('label');label.className='detail-type-option';
+    var radio=document.createElement('input');radio.type='radio';radio.name=id+'-filter';radio.value=pair[0];
+    if(!pair[0])radio.checked=true;
+    label.appendChild(radio);label.appendChild(document.createTextNode(pair[1]));dd.appendChild(label);
+  });
+}
+function setupFilterIcon(iconId,ddId,setter){
+  var icon=document.getElementById(iconId),dd=document.getElementById(ddId);
+  icon.addEventListener('click',function(e){e.stopPropagation();
+    document.querySelectorAll('.detail-type-dropdown.open').forEach(function(d){d.classList.remove('open');});
+    dd.classList.toggle('open');
+  });
+  dd.addEventListener('click',function(e){e.stopPropagation();});
+  dd.querySelectorAll('input[type="radio"]').forEach(function(radio){
+    radio.addEventListener('change',function(){setter(this.value);warnPage=1;dd.classList.remove('open');renderWarnTable();});
+  });
+}
+setupFilterIcon('warnTypeFilterIcon','warnTypeDropdown',function(v){warnTypeFilterValue=v;});
+setupFilterIcon('warnLevelFilterIcon','warnLevelDropdown',function(v){warnLevelFilterValue=v;});
+
+})();
+</script>
+</body></html>

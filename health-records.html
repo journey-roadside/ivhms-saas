@@ -1,0 +1,2654 @@
+<!doctype html>
+<html lang="zh-CN"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>视力健康管理平台 · 健康档案</title>
+<script src="vendor/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg:          #f7f7f7;
+    --surface:     #ffffff;
+    --fg:          #0a0a0a;
+    --muted:       #5a5a5c;
+    --muted-light: #888888;
+    --border:      #e5e5e5;
+    --border-md:   #ededed;
+    --accent:      #00d4a4;
+    --accent-deep: #0d0d0d;
+    --accent-light:#7cebcb;
+    --error:       #d45656;
+    --error-light: #fde8e8;
+    --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --font-body:    'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+    --radius-xs: 4px; --radius-sm: 6px; --radius-md: 8px; --radius-lg: 12px; --radius-xl: 16px; --radius-xxl: 24px; --radius-pill: 9999px;
+    --shadow-card: rgba(0,0,0,0.03) 0 2px 4px; --shadow-btn: rgba(0,0,0,0.06) 0 1px 2px;
+    --sidebar-w: 240px;
+    --header-h: 56px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;scrollbar-width:none;-ms-overflow-style:none}
+  html::-webkit-scrollbar{display:none}
+  body{font-family:var(--font-body);color:var(--fg);background:var(--bg);min-height:100vh;display:flex;line-height:1.5}
+
+  /* ─── sidebar ────────────────────────────────────────────── */
+  .sidebar{width:var(--sidebar-w);background:var(--fg);color:#fff;display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;transition:transform .3s}
+  .sidebar-logo{padding:16px 20px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,0.08)}
+  .sidebar-logo-icon{width:32px;height:32px;border-radius:var(--radius-md);background:var(--accent);display:flex;align-items:center;justify-content:center}
+  .sidebar-logo-icon svg{width:16px;height:16px;color:var(--fg)}
+  .sidebar-logo-text{font-family:var(--font-display);font-size:15px;font-weight:600;letter-spacing:-0.01em}
+  .sidebar-nav{padding:8px 0;flex:1}
+  .sidebar-item{display:flex;align-items:center;gap:12px;padding:10px 20px;font-size:14px;color:rgba(255,255,255,0.6);cursor:pointer;transition:color .15s,background .15s;border-radius:0;position:relative;text-decoration:none}
+  .sidebar-item:hover{color:rgba(255,255,255,0.9);background:rgba(255,255,255,0.04)}
+  .sidebar-item.active{color:#fff;background:rgba(0,212,164,0.12)}
+  .sidebar-item.active::before{content:'';position:absolute;left:0;top:4px;bottom:4px;width:3px;background:var(--accent);border-radius:0 2px 2px 0}
+  .sidebar-item svg{width:18px;height:18px;flex-shrink:0}
+  .sidebar-bottom{padding:16px 20px;border-top:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between}
+  .sidebar-user{display:flex;align-items:center;gap:10px;cursor:pointer;transition:opacity .15s}
+  .sidebar-user:hover{opacity:.9}
+  .sidebar-avatar{width:28px;height:28px;border-radius:var(--radius-pill);background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--fg)}
+  .sidebar-username{font-size:13px;color:#fff;font-weight:500}
+  .sidebar-bottom-actions{display:flex;align-items:center;gap:8px}
+  .sidebar-bottom-btn{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:var(--radius-md);cursor:pointer;color:rgba(255,255,255,0.6);transition:background .15s,color .15s;position:relative}
+  .sidebar-bottom-btn:hover{background:rgba(255,255,255,0.08);color:#fff}
+  .sidebar-bottom-btn svg{width:18px;height:18px}
+  .sidebar-msg-badge{position:absolute;top:-2px;right:-4px;background:var(--accent);color:var(--fg);font-size:10px;font-weight:700;padding:1px 5px;border-radius:var(--radius-pill);min-width:16px;text-align:center;line-height:1.4}
+
+  /* ─── main layout ────────────────────────────────────────── */
+  .main-wrap{flex:1;min-width:0;margin-left:var(--sidebar-w);display:flex;flex-direction:column;min-height:100vh}
+  .content{flex:1;padding:24px 32px}
+  .content-title{font-family:var(--font-display);font-size:22px;font-weight:600;letter-spacing:-0.3px;margin-bottom:24px;color:var(--fg)}
+
+  /* ─── sidebar floating panels ─────────────────────────────── */
+  .sidebar-user-dropdown{position:fixed;left:20px;width:var(--sidebar-w);bottom:60px;z-index:200;display:none;opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;background:var(--fg);border:1px solid rgba(255,255,255,0.12);border-radius:var(--radius-lg);box-shadow:0 8px 32px rgba(0,0,0,0.5),0 2px 8px rgba(0,0,0,0.3)}
+  .sidebar-user-dropdown.open{display:block;opacity:1;transform:translateY(0)}
+  .sidebar-msg-panel{position:fixed;left:20px;width:360px;max-width:calc(100vw - 32px);bottom:60px;z-index:200;display:none;opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;background:var(--fg);border:1px solid rgba(255,255,255,0.12);border-radius:var(--radius-lg);box-shadow:0 8px 32px rgba(0,0,0,0.5),0 2px 8px rgba(0,0,0,0.3)}
+  .sidebar-msg-panel.open{display:block;opacity:1;transform:translateY(0)}
+  .sidebar-user-dropdown .user-menu-item{color:#fff;display:flex;align-items:center;gap:10px;padding:10px 16px;font-size:13px;cursor:pointer;transition:background .15s;text-decoration:none}
+  .sidebar-user-dropdown .user-menu-item:hover{background:rgba(255,255,255,0.08)}
+  .sidebar-user-dropdown .user-menu-item svg{width:16px;height:16px;color:rgba(255,255,255,0.55);flex-shrink:0}
+  .sidebar-user-dropdown .user-menu-item.danger{color:#ef4444}
+  .sidebar-user-dropdown .user-menu-item.danger svg{color:#ef4444}
+  .sidebar-user-dropdown .user-menu-divider{height:1px;background:rgba(255,255,255,0.08);margin:4px 12px}
+  .msg-empty{text-align:center;padding:32px 16px;display:flex;flex-direction:column;align-items:center;gap:8px}
+  .msg-empty-icon{color:rgba(255,255,255,0.3)}
+  .msg-empty-icon svg{width:36px;height:36px}
+  .msg-empty-text{font-size:13px;color:rgba(255,255,255,0.5)}
+  .msg-header{display:flex;align-items:center;justify-content:space-between;padding:16px;border-bottom:1px solid rgba(255,255,255,0.08)}
+  .msg-header-title{font-family:var(--font-display);font-size:14px;font-weight:600;color:#fff}
+  .msg-clear-btn{font-size:12px;color:var(--accent);cursor:pointer;font-weight:500;border:none;background:none;font-family:var(--font-body)}
+  .msg-clear-btn:hover{color:#fff}
+  .msg-list{max-height:320px;overflow-y:auto}
+  .msg-list::-webkit-scrollbar{width:4px}
+  .msg-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.15);border-radius:4px}
+  .msg-item{padding:12px 10px;border-bottom:1px solid rgba(255,255,255,0.06);cursor:pointer;transition:background .15s}
+  .msg-item:hover{background:rgba(255,255,255,0.06)}
+  .msg-item:last-child{border-bottom:none}
+  .msg-item-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+  .msg-item-title{font-size:13px;font-weight:500;color:#fff;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .msg-item-time{font-size:11px;color:rgba(255,255,255,0.4)}
+  .msg-item-type{font-size:12px;color:rgba(255,255,255,0.55)}
+  .msg-footer{padding:12px 16px;border-top:1px solid rgba(255,255,255,0.08);text-align:center;font-size:13px;color:var(--accent);cursor:pointer;font-weight:500}
+  .msg-footer:hover{color:#fff}
+
+  /* ─── confirm dialog ──────────────────────────────────────── */
+  .confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:999;display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;transition:opacity .2s,visibility .2s}
+  .confirm-overlay.open{opacity:1;visibility:visible}
+  .confirm-box{background:var(--surface);border-radius:var(--radius-lg);padding:24px;width:360px;max-width:90vw;box-shadow:rgba(0,0,0,0.12) 0 16px 48px}
+  .confirm-title{font-family:var(--font-display);font-size:16px;font-weight:600;margin-bottom:8px}
+  .confirm-msg{font-size:14px;color:var(--muted);margin-bottom:40px;line-height:1.6}
+  .confirm-actions{display:flex;gap:12px;justify-content:flex-end}
+  .confirm-btn{padding:8px 20px;font-size:14px;font-weight:500;border-radius:var(--radius-pill);cursor:pointer;font-family:var(--font-body);transition:background .2s}
+  .confirm-btn-cancel{background:var(--bg);color:var(--fg);border:1px solid var(--border-md)}
+  .confirm-btn-cancel:hover{background:rgba(0,0,0,0.06)}
+  .confirm-btn-danger{background:#ef4444;color:#fff;border:none}
+  .confirm-btn-danger:hover{background:#dc2626}
+
+  .btn-primary{padding:12px 24px;font-size:14px;font-weight:500;border-radius:var(--radius-pill);cursor:pointer;font-family:var(--font-body);background:var(--fg);color:#fff;border:none;transition:background .2s,opacity .2s,transform .1s,box-shadow .2s;box-shadow:var(--shadow-btn)}
+  .btn-primary:hover:not(:disabled){background:#1a1a1a}
+  .btn-primary:active:not(:disabled){transform:scale(.985);box-shadow:none}
+  .btn-primary:disabled{background:rgba(0,0,0,.08);color:var(--muted-light);cursor:not-allowed;box-shadow:none}
+  .btn-secondary{padding:12px 28px;font-size:14px;font-weight:500;border-radius:var(--radius-pill);cursor:pointer;font-family:var(--font-body);background:var(--surface);color:var(--fg);border:1.5px solid var(--border-md);transition:background .2s,transform .1s;display:inline-flex;align-items:center;gap:8px}
+  .btn-secondary:hover{background:var(--bg)}
+  .btn-secondary:active{transform:scale(.985)}
+  .btn-accent-green{padding:10px 20px;font-size:14px;font-weight:500;border-radius:var(--radius-pill);cursor:pointer;font-family:var(--font-body);background:var(--accent);color:var(--fg);border:none;transition:opacity .15s}
+  .btn-accent-green:hover{opacity:.9}
+  .btn-on-dark{padding:10px 20px;font-size:14px;font-weight:500;border-radius:var(--radius-pill);cursor:pointer;font-family:var(--font-body);background:#fff;color:var(--fg);border:none;transition:opacity .15s}
+  .btn-on-dark:hover{opacity:.9}
+  .btn-ghost{padding:8px 12px;font-size:14px;font-weight:500;border-radius:var(--radius-md);cursor:pointer;font-family:var(--font-body);background:transparent;color:var(--fg);border:none;transition:opacity .15s}
+  .btn-ghost:hover{opacity:.8}
+
+  /* ─── health records page ────────────────────────────────── */
+  .settings-page-title{font-family:var(--font-display);font-size:20px;font-weight:600;letter-spacing:-0.2px;margin-bottom:28px}
+  .settings-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:32px;box-shadow:var(--shadow-card)}
+  .filter-row{display:grid;grid-template-columns:repeat(7,1fr) auto;gap:12px;align-items:center;margin-bottom:24px}
+  .form-label{display:flex;align-items:baseline;font-size:13px;font-weight:600;color:var(--fg);margin-bottom:8px}
+  .form-input{width:100%;height:40px;padding:0 14px;font-family:var(--font-body);font-size:15px;color:var(--fg);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);outline:none;transition:border-color .2s,box-shadow .2s}
+  .form-input::placeholder{color:var(--muted-light)}
+  .form-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,164,0.12)}
+  .form-select{width:100%;height:44px;padding:0 14px;font-family:var(--font-body);font-size:14px;color:var(--fg);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);outline:none;transition:border-color .2s,box-shadow .2s;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23767676' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;background-size:16px;padding-right:36px}
+  .form-select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,164,0.12)}
+  .custom-select-wrap{position:relative}
+  .custom-select-trigger{width:100%;height:40px;padding:0 14px;font-family:var(--font-body);font-size:14px;color:var(--fg);background:var(--surface);border:1.5px solid var(--border-md);border-radius:var(--radius-md);outline:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;transition:border-color .2s,box-shadow .2s;box-sizing:border-box}
+  .custom-select-trigger:hover{border-color:var(--accent)}
+  .custom-select-trigger.open{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,164,0.12)}
+  .custom-select-trigger.sm{height:36px;padding:0 12px;font-size:13px}
+  .custom-select-trigger.xs{height:32px;padding:0 28px 0 10px;font-size:13px}
+  .custom-select-trigger.xs svg{width:14px;height:14px;margin-left:6px}
+  .custom-select-trigger svg{width:16px;height:16px;color:var(--muted-light);flex-shrink:0;transition:transform .2s;margin-left:8px}
+  .custom-select-trigger.open svg{transform:rotate(180deg)}
+  .custom-select-trigger.up svg{transform:rotate(180deg)}
+  .custom-select-trigger.up.open svg{transform:rotate(0deg)}
+  .custom-select-trigger .cs-placeholder{color:var(--muted-light)}
+  .custom-select-menu{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--surface);border:1px solid var(--border-md);border-radius:var(--radius-md);box-shadow:0 8px 24px rgba(0,0,0,0.1);z-index:20;max-height:220px;overflow-y:auto;display:none}
+  .custom-select-menu.up{top:auto;bottom:calc(100% + 4px)}
+  .custom-select-menu.open{display:block}
+  .custom-select-item{padding:10px 14px;font-size:14px;color:var(--fg);cursor:pointer;transition:background .15s}
+  .custom-select-item.sm{font-size:13px;padding:8px 12px}
+  .custom-select-item.xs{font-size:12px;padding:6px 10px}
+  .custom-select-item:hover{background:rgba(0,212,164,0.08)}
+  .custom-select-item.selected{background:rgba(0,212,164,0.12);font-weight:500}
+  /* ─── cascaded grade-class dropdown ─────────────────────── */
+  .cascaded-menu.custom-select-menu{min-width:240px;width:auto;max-width:90vw;max-height:none;overflow:visible;right:auto;display:none;flex-direction:row;white-space:nowrap}
+  .cascaded-menu.open{display:flex}
+  .cascaded-level{display:flex;flex-direction:column;max-height:260px;overflow-y:auto}
+  .cascaded-level:first-child{flex:none;width:240px;border-right:1px solid var(--border-md)}
+  .cascaded-level:last-child{flex:none;width:240px}
+  .cascaded-item{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;font-size:14px;color:var(--fg);cursor:pointer;transition:background .15s;position:relative}
+  .cascaded-item:hover{background:rgba(0,212,164,0.08)}
+  .cascaded-item.selected{background:rgba(0,212,164,0.16);color:var(--accent);font-weight:500}
+  .cascaded-item.selected::before{content:'';position:absolute;left:0;top:6px;bottom:6px;width:3px;background:var(--accent);border-radius:0 2px 2px 0}
+  .cascaded-item.cascaded-empty{padding:20px 14px;color:var(--muted-light);font-size:13px;justify-content:center;cursor:default}
+  .cascaded-item.cascaded-empty:hover{background:transparent}
+  .filter-actions{display:flex;gap:12px;align-items:center;justify-self:end;height:44px}
+  .header-actions{display:flex;gap:12px;align-items:center}
+  .record-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+  .record-header-left{display:flex;align-items:center;gap:8px}
+  .btn-outline{padding:8px 20px;font-size:14px;font-weight:500;border-radius:var(--radius-pill);cursor:pointer;font-family:var(--font-body);background:var(--surface);color:var(--fg);border:1px solid var(--border-md);transition:background .15s;display:inline-flex;align-items:center;gap:6px}
+  .btn-outline:hover{background:rgba(0,0,0,0.06)}
+  .btn-outline svg{width:16px;height:16px}
+  .btn-save{padding:8px 20px;font-size:14px}
+  .card-table-wrap{overflow-x:auto}
+  .member-table{width:auto;min-width:100%;border-collapse:collapse;font-size:14px}
+  .member-table thead{background:transparent}
+  .member-table th{padding:12px 14px;text-align:left;font-weight:700;color:#000;font-size:14px;border-bottom:1px solid var(--border-md)}
+  .member-table td{padding:12px 14px;border-bottom:1px solid #F2F2F2;color:var(--fg)}
+  .member-table th:last-child,.member-table td:last-child{text-align:right;padding-right:20px}
+  .member-table tbody tr:hover{background:rgba(0,212,164,.03)}
+  .member-action{color:#00d4a4;cursor:pointer;font-size:13px;font-weight:500;border:none;background:none;padding:0;font-family:var(--font-body)}
+  .member-action:hover{opacity:.8}
+  .record-pagination-row{display:flex;align-items:center;justify-content:space-between;margin-top:32px;gap:16px}
+  .record-pagination-left{display:flex;align-items:center;gap:12px}
+  .record-count{font-size:13px;color:var(--muted-light)}
+  .page-size-select{height:32px;padding:0 28px 0 10px;font-family:var(--font-body);font-size:13px;color:var(--fg);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);outline:none;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23767676' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;background-size:14px;cursor:pointer}
+  .page-size-select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,164,0.12)}
+  .member-pagination{display:flex;align-items:center;gap:8px}
+  .member-page-btn{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:var(--radius-md);font-size:13px;font-weight:500;cursor:pointer;font-family:var(--font-body);border:1px solid var(--border-md);background:var(--surface);color:var(--fg);transition:background .15s,border-color .15s}
+  .member-page-btn:hover{background:var(--bg)}
+  .member-page-btn.active{background:var(--fg);color:#fff;border-color:var(--fg)}
+  .member-page-btn:disabled{opacity:.4;cursor:not-allowed}
+  .status-badge{display:inline-flex;align-items:center;padding:4px 12px;border-radius:var(--radius-pill);font-size:12px;font-weight:500}
+  .status-badge.st-active{background:var(--accent-light);color:var(--accent-deep)}
+  .status-badge.st-graduated{background:rgba(0,0,0,.05);color:var(--muted)}
+  .status-badge.st-transfer{background:#fef3c7;color:#d97706}
+  .row-checkbox{width:16px;height:16px;cursor:pointer;accent-color:var(--accent-deep)}
+  #selectAll{width:16px;height:16px;cursor:pointer;accent-color:var(--accent-deep)}
+
+  /* ─── breadcrumbs ──────────────────────────────────────────── */
+  .breadcrumbs{display:flex;align-items:center;gap:8px;padding:0 0 24px;font-family:var(--font-display);font-size:22px;font-weight:600;letter-spacing:-0.3px;color:var(--fg)}
+  .breadcrumbs-item{cursor:pointer;transition:color .15s;color:var(--muted);font-weight:400}
+  .breadcrumbs-item:hover{color:var(--fg)}
+  .breadcrumbs-item.active{color:var(--fg);font-weight:600;cursor:default}
+  .breadcrumbs-sep{color:var(--muted-light);font-size:12px}
+
+  /* ─── step form ────────────────────────────────────────────── */
+  .import-page{display:none}
+  .import-page.active{display:block}
+  .step-indicator{display:flex;align-items:center;margin-bottom:32px;width:300px}
+  .step-item{display:flex;align-items:center;flex:0 0 auto}
+  .step-dot{width:28px;height:28px;border-radius:var(--radius-pill);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0;transition:background .3s,color .3s,transform .3s;background:rgba(0,0,0,.06);color:var(--muted-light)}
+  .step-dot.active{background:var(--fg);color:#fff;transform:scale(1.08)}
+  .step-dot.done{background:var(--accent);color:var(--fg)}
+  .step-label{margin-left:8px;font-size:13px;font-weight:500;color:var(--muted);white-space:nowrap;transition:color .3s}
+  .step-item.active .step-label{color:var(--fg);font-weight:600}
+  .step-item.done .step-label{color:var(--muted)}
+  .step-line{flex:1 1 0%;height:2px;background:rgba(0,0,0,.06);margin:0 10px;min-width:16px;border-radius:1px;transition:background .4s}
+  .step-line.done{background:var(--accent)}
+  .step-content{display:none}
+  .step-content.active{display:block}
+  .step-title{font-family:var(--font-display);font-size:18px;font-weight:600;letter-spacing:-0.2px;margin-bottom:20px}
+  .step-notes{background:var(--bg);border:1px solid var(--border-md);border-radius:var(--radius-md);padding:16px 20px;margin-bottom:24px;font-size:13px;color:var(--muted);line-height:1.8}
+  .step-notes-title{font-weight:600;color:var(--fg);margin-bottom:8px;font-size:14px}
+  .step-notes ul{margin:0;padding-left:20px}
+  .step-notes li{margin-bottom:4px}
+  .download-btn{display:inline-flex;align-items:center;gap:8px;padding:12px 24px;font-size:14px;font-weight:500;border-radius:var(--radius-pill);cursor:pointer;font-family:var(--font-body);background:var(--fg);color:#fff;border:none;transition:opacity .15s}
+  .download-btn:hover{opacity:.9}
+  .download-btn svg{width:18px;height:18px}
+
+  /* ─── file upload ──────────────────────────────────────────── */
+  .upload-area{border:2px dashed rgba(0,0,0,.1);border-radius:var(--radius-lg);padding:36px 24px;text-align:center;cursor:pointer;transition:border-color .25s,background .25s,box-shadow .25s,padding .35s cubic-bezier(.22,1,.36,1);background:var(--surface)}
+  .upload-area:hover{border-color:var(--accent);background:rgba(0,212,164,.02)}
+  .upload-area.dragover{border-color:var(--accent);background:var(--accent-light)}
+  .upload-area.uploaded{border-style:solid;border-color:var(--accent);background:rgba(24,226,153,.03);padding:14px 20px}
+  .upload-icon{margin-bottom:12px;color:var(--muted);transition:color .25s,transform .25s}
+  .upload-icon svg{width:32px;height:32px}
+  .upload-area:hover .upload-icon svg{color:var(--accent);transform:translateY(-2px)}
+  .upload-text{font-size:14px;color:var(--muted);margin-bottom:4px}
+  .upload-hint{font-size:12px;color:var(--muted-light)}
+  .upload-file-info{display:none;align-items:center;gap:10px;font-size:14px;color:var(--fg)}
+  .upload-file-info.show{display:flex}
+  .upload-file-name{font-size:14px;font-weight:500;max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .upload-file-size{color:var(--muted);flex-shrink:0}
+  .upload-remove{background:none;border:none;cursor:pointer;color:var(--muted-light);font-size:16px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;line-height:1;border-radius:var(--radius-md);margin-left:auto;transition:color .15s,background .15s;flex-shrink:0}
+  .upload-remove:hover{color:var(--error);background:var(--error-light)}
+
+  .step-actions{display:flex;gap:12px;justify-content:flex-end;margin-top:32px;padding-top:24px;border-top:1px solid var(--border)}
+
+  /* ─── drawer ──────────────────────────────────────────────── */
+  .drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:900;opacity:0;visibility:hidden;transition:opacity .3s,visibility .3s}
+  .drawer-overlay.open{opacity:1;visibility:visible}
+  .drawer-panel{position:fixed;top:0;right:0;bottom:0;width:40%;max-width:560px;min-width:320px;background:var(--surface);z-index:901;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;box-shadow:-8px 0 24px rgba(0,0,0,0.1)}
+  .drawer-overlay.open .drawer-panel{transform:translateX(0)}
+  .drawer-header{display:flex;align-items:center;justify-content:space-between;padding:24px 32px;border-bottom:1px solid var(--border-md)}
+  .drawer-header-title{font-family:var(--font-display);font-size:18px;font-weight:600;letter-spacing:-0.2px}
+  .drawer-close{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:var(--radius-md);cursor:pointer;color:var(--muted);transition:background .15s,color .15s;border:none;background:none}
+  .drawer-close:hover{background:var(--bg);color:var(--fg)}
+  .drawer-close svg{width:20px;height:20px}
+  .drawer-body{flex:1;padding:32px;overflow-y:auto}
+  .drawer-form-group{margin-bottom:24px}
+  .drawer-form-label{display:flex;align-items:baseline;font-size:14px;font-weight:600;color:var(--fg);margin-bottom:8px}
+  .drawer-form-label .required{color:var(--error);font-size:12px;margin-left:4px}
+  .drawer-form-input{width:100%;height:44px;padding:0 14px;font-family:var(--font-body);font-size:14px;color:var(--fg);background:var(--surface);border:1.5px solid var(--border-md);border-radius:var(--radius-md);outline:none;transition:border-color .2s,box-shadow .2s}
+  .drawer-form-input::placeholder{color:var(--muted-light)}
+  .drawer-form-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,164,0.12)}
+  .drawer-form-input.error{border-color:var(--error)}
+  .drawer-form-select{width:100%;height:44px;padding:0 14px;font-family:var(--font-body);font-size:14px;color:var(--fg);background:var(--surface);border:1.5px solid var(--border-md);border-radius:var(--radius-md);outline:none;transition:border-color .2s,box-shadow .2s;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23767676' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;background-size:16px;padding-right:36px}
+  .drawer-form-select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,164,0.12)}
+  .drawer-form-error{font-size:12px;color:var(--error);margin-top:6px;display:none}
+  .drawer-form-error.show{display:block}
+  .drawer-footer{padding:24px 32px;border-top:1px solid var(--border-md);display:flex;gap:12px;justify-content:flex-end}
+
+  /* ─── global message ─────────────────────────────────────────── */
+  .message-container{position:fixed;top:24px;left:50%;transform:translateX(-50%);z-index:10000;display:flex;flex-direction:column;gap:12px;pointer-events:none}
+  .message{display:flex;align-items:center;gap:10px;padding:14px 24px;border-radius:var(--radius-lg);font-size:14px;font-weight:500;font-family:var(--font-body);box-shadow:0 8px 32px rgba(0,0,0,0.12),0 2px 8px rgba(0,0,0,0.06);pointer-events:auto;opacity:0;transform:translateY(-12px);transition:opacity .3s,transform .3s;max-width:480px;white-space:nowrap}
+  .message.show{opacity:1;transform:translateY(0)}
+  .message.message-warning{background:#fff;color:var(--fg);border:1px solid var(--border-md)}
+  .message.message-warning .message-icon{color:#f59e0b}
+  .message.message-loading{background:#fff;color:var(--fg);border:1px solid var(--border-md)}
+  .message.message-loading .message-icon{color:var(--accent)}
+  .message.message-success{background:#fff;color:var(--fg);border:1px solid var(--border-md)}
+  .message.message-success .message-icon{color:var(--accent)}
+  .message-icon{display:flex;align-items:center;flex-shrink:0}
+  .message-icon svg{width:20px;height:20px}
+  .message-spinner{display:flex;align-items:center;flex-shrink:0}
+  .message-spinner svg{width:20px;height:20px;animation:message-spin 1s linear infinite}
+  @keyframes message-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+
+  /* ─── detail page ──────────────────────────────────────────── */
+  .detail-page{display:none}
+  .detail-page.active{display:block}
+  .card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+  .card-header-actions{display:flex;gap:12px;align-items:center}
+  .btn-danger-text{color:#ef4444;border-color:#ef4444}
+  .btn-danger-text:hover{background:rgba(239,68,68,0.08)}
+  .card-title{font-family:var(--font-display);font-size:16px;font-weight:600;color:var(--fg)}
+  .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 20px}
+  .info-item{display:flex;align-items:center;gap:40px;min-height:44px}
+  .info-label{font-size:13px;color:var(--muted);min-width:100px;flex-shrink:0}
+  .info-value{font-size:14px;color:var(--fg)}
+  .info-value-static{font-size:14px;color:var(--fg)}
+  .info-value-edit{display:none;flex-direction:column;gap:4px}
+  .info-grid.editing .info-value{display:none}
+  .info-grid.editing .info-value-static{display:inline;opacity:.6}
+  .info-grid.editing .info-value-edit{display:flex;flex-direction:column;gap:4px}
+  .info-required{color:var(--error);font-size:12px;margin-left:2px}
+  .info-grid:not(.editing) .info-required{display:none}
+  .info-edit-input{width:200px;height:36px;padding:0 12px;font-family:var(--font-body);font-size:14px;color:var(--fg);background:var(--surface);border:1.5px solid var(--border-md);border-radius:var(--radius-md);outline:none;transition:border-color .2s,box-shadow .2s}
+  .info-edit-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,164,0.12)}
+  .info-edit-input.error{border-color:var(--error)}
+  .info-edit-select{width:200px;height:36px;padding:0 12px;font-family:var(--font-body);font-size:14px;color:var(--fg);background:var(--surface);border:1.5px solid var(--border-md);border-radius:var(--radius-md);outline:none;transition:border-color .2s,box-shadow .2s;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23767676' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;background-size:14px;padding-right:28px}
+  .info-edit-select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,164,0.12)}
+  .info-edit-select.error{border-color:var(--error)}
+  .info-edit-select + .custom-select-wrap{width:200px}
+  .info-edit-error{font-size:12px;color:var(--error);display:none}
+  .info-edit-error.show{display:block}
+  .detail-row{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:24px}
+  .detail-record-card{height:420px;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+  .detail-record-table-wrap{flex:1;overflow-y:auto}
+  .detail-record-table-wrap table{width:100%;border-collapse:collapse;font-size:13px}
+  .detail-record-table-wrap th{padding:10px 12px;text-align:left;font-weight:700;color:#000;font-size:14px;border-bottom:1px solid var(--border-md);background:transparent}
+  .detail-record-table-wrap td{padding:10px 12px;border-bottom:1px solid var(--border);color:var(--fg)}
+  .vision-warning{color:var(--error);font-weight:600}
+  .vision-safe{color:#0fa76e;font-weight:600}
+  .detail-record-nav{padding:12px 0;display:flex;justify-content:space-between;align-items:center}
+  .detail-record-count{font-size:13px;color:var(--muted-light)}
+  .detail-chart-card{height:420px;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+  .detail-chart-wrap{flex:1;padding:12px;position:relative;overflow:hidden;min-height:0}
+  .detail-chart-wrap canvas{width:100%;height:100%}
+  .chart-legend{display:flex;align-items:center;gap:12px;font-size:14px;color:var(--muted)}
+  .chart-legend-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+
+  /* ─── custom single-select dropdown (ms-*) ────────────────── */
+  .ms-trigger{display:flex;align-items:center;justify-content:space-between;height:40px;padding:0 14px;font-family:var(--font-body);font-size:14px;color:var(--fg);background:var(--surface);border:1.5px solid var(--border-md);border-radius:var(--radius-md);cursor:pointer;transition:border-color .2s,box-shadow .2s;box-sizing:border-box;user-select:none;min-width:110px}
+  .ms-trigger:hover,.ms-trigger.open{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,164,0.12)}
+  .ms-trigger svg{width:14px;height:14px;color:var(--muted-light);flex-shrink:0;transition:transform .2s;margin-left:8px}
+  .ms-trigger.open svg{transform:rotate(180deg)}
+  .ms-dropdown{position:absolute;top:100%;right:0;z-index:50;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:0 8px 24px rgba(0,0,0,0.08),0 2px 6px rgba(0,0,0,0.04);margin-top:4px;max-height:280px;overflow-y:auto;display:none;min-width:130px}
+  .ms-dropdown.open{display:block}
+  .ms-options{padding:4px}
+  .ms-option{display:flex;align-items:center;padding:10px 14px;font-size:13px;cursor:pointer;transition:background .12s;color:var(--fg)}
+  .ms-option:hover{background:rgba(0,212,164,0.06)}
+  .ms-option.selected{color:var(--accent);font-weight:600}
+  .ms-divider{height:1px;background:var(--border);margin:2px 10px}
+  .detail-type-th{position:relative}
+  .detail-type-filter{display:inline-flex;align-items:center;vertical-align:middle;margin-left:2px}
+  .detail-type-dropdown{position:absolute;top:100%;left:0;background:var(--surface);border:1px solid var(--border-md);border-radius:var(--radius-md);padding:8px 0;z-index:10;display:none;box-shadow:0 4px 12px rgba(0,0,0,0.08);min-width:120px;max-height:280px;overflow-y:auto}
+  .detail-type-dropdown.open{display:block}
+  .detail-type-option{display:flex;align-items:center;gap:6px;padding:6px 12px;font-size:13px;font-weight:400;color:var(--fg);cursor:pointer;transition:background .15s}
+  .detail-type-option:hover{background:var(--bg)}
+  .detail-type-option input{accent-color:var(--accent-deep);width:14px;height:14px}
+
+  /* ─── responsive ─────────────────────────────────────────── */
+  @media(max-width:640px){
+    .sidebar{transform:translateX(-100%)}
+    .sidebar.open{transform:translateX(0)}
+    .main-wrap{margin-left:0}
+    .content{padding:12px}
+    .confirm-box{width:calc(100vw - 32px)}
+  }
+  @media(min-width:641px) and (max-width:800px){
+    .sidebar{transform:translateX(-100%)}
+    .sidebar.open{transform:translateX(0)}
+    .main-wrap{margin-left:0}
+    .content{padding:16px}
+  }
+  @media(min-width:801px) and (max-width:1100px){
+    :root{--sidebar-w:180px}
+    .content{padding:20px}
+  }
+  @media(min-width:1101px) and (max-width:1400px){
+    :root{--sidebar-w:220px}
+  }
+  @media(min-width:1401px){
+    :root{--sidebar-w:260px}
+    .content{padding:32px 48px}
+  }
+</style>
+</head>
+<body>
+
+<!-- 全局提示容器 -->
+<div class="message-container" id="messageContainer"></div>
+
+<!-- 侧边栏 -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="sidebar-logo-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path></svg>
+    </div>
+    <span class="sidebar-logo-text">明瞳  · IVHMS</span>
+  </div>
+  <nav class="sidebar-nav">
+    <a class="sidebar-item" href="index.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect></svg>
+      数据概览
+    </a>
+    <a class="sidebar-item" href="statistics.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+      统计分析
+    </a>
+    <a class="sidebar-item active" href="health-records.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+      健康档案
+    </a>
+    <a class="sidebar-item" href="device-status.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+      设备状态
+    </a>
+  </nav>
+  <div class="sidebar-bottom">
+    <div class="sidebar-user" id="sidebarUser">
+      <div class="sidebar-avatar">远</div>
+      <span class="sidebar-username">张明远</span>
+    </div>
+    <div class="sidebar-bottom-actions">
+      <div class="sidebar-bottom-btn" id="sidebarMsgBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 01-3.46 0"></path></svg>
+        <span class="sidebar-msg-badge" id="sidebarMsgBadge">5</span>
+      </div>
+      <div class="sidebar-bottom-btn" id="sidebarHelpBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- 主内容区 -->
+<div class="main-wrap">
+
+  <!-- 用户下拉菜单（独立浮层） -->
+  <div class="sidebar-user-dropdown" id="userPanel">
+    <a class="user-menu-item" href="index.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+      个人中心
+    </a>
+    <a class="user-menu-item" href="index.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+      管理后台
+    </a>
+    <div class="user-menu-divider"></div>
+    <div class="user-menu-item danger" id="logoutBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+      退出登录
+    </div>
+  </div>
+
+  <!-- 消息面板（独立浮层） -->
+  <div class="sidebar-msg-panel" id="msgPanel">
+    <div class="msg-header">
+      <span class="msg-header-title">消息通知</span>
+      <button class="msg-clear-btn" id="msgClearBtn">全部已读</button>
+    </div>
+    <div class="msg-list" id="msgList">
+      <div class="msg-item">
+        <div class="msg-item-top"><span class="msg-item-title">三年级视力筛查已完成</span><span class="msg-item-time">10:30</span></div>
+        <span class="msg-item-type">筛查通知</span>
+      </div>
+      <div class="msg-item">
+        <div class="msg-item-top"><span class="msg-item-title">训练仪 2 已离线，请检查连接</span><span class="msg-item-time">09:15</span></div>
+        <span class="msg-item-type">设备告警</span>
+      </div>
+      <div class="msg-item">
+        <div class="msg-item-top"><span class="msg-item-title">本周筛查报告已生成</span><span class="msg-item-time">昨天</span></div>
+        <span class="msg-item-type">报告通知</span>
+      </div>
+      <div class="msg-item">
+        <div class="msg-item-top"><span class="msg-item-title">新学期视力评估任务已发布</span><span class="msg-item-time">2天前</span></div>
+        <span class="msg-item-type">任务通知</span>
+      </div>
+      <div class="msg-item">
+        <div class="msg-item-top"><span class="msg-item-title">筛查终端 A 固件更新成功</span><span class="msg-item-time">3天前</span></div>
+        <span class="msg-item-type">系统通知</span>
+      </div>
+    </div>
+    <div class="msg-empty" id="msgEmpty" style="display:none">
+      <div class="msg-empty-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 01-3.46 0"></path></svg>
+      </div>
+      <span class="msg-empty-text">暂无消息</span>
+    </div>
+    <div class="msg-footer" id="msgViewAll">查看全部消息</div>
+  </div>
+
+  <!-- 内容区 -->
+  <div class="content">
+    <div class="content-title">健康档案</div>
+    <div class="settings-card">
+      <div class="record-header">
+        <div class="header-actions">
+          <button class="btn-primary" id="newRecordBtn" style="height:40px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            新建档案
+          </button>
+          <button class="btn-outline" id="importBtn" style="height:40px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            模板导入
+          </button>
+          <button class="btn-outline" id="exportBtn" style="height:40px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            报表导出
+          </button>
+        </div>
+      </div>
+      <div class="filter-row">
+        <div class="form-group">
+          <input class="form-input" id="filterName" type="text" placeholder="请输入姓名" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <input class="form-input" id="filterHealthId" type="text" placeholder="请输入健康ID" autocomplete="off" oninput="this.value=this.value.replace(/[^a-zA-Z0-9]/g,'')">
+        </div>
+        <div class="form-group">
+          <input class="form-input" id="filterStudentNo" type="text" placeholder="请输入学号" autocomplete="off" oninput="this.value=this.value.replace(/[^a-zA-Z0-9]/g,'')">
+        </div>
+        <div class="form-group">
+          <div class="custom-select-wrap" id="cascadeWrap">
+            <div class="custom-select-trigger" id="cascadeTrigger">
+              <span id="cascadeTriggerText" class="cs-placeholder">请选择年级-班级</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;flex-shrink:0"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </div>
+            <div class="custom-select-menu cascaded-menu" id="cascadeMenu">
+              <div class="cascaded-level" id="cascadeLevel1"></div>
+              <div class="cascaded-level" id="cascadeLevel2"></div>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <select class="form-select" id="filterAssessTime" data-trigger-text="选择评估时间">
+            <option value="">全部</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <select class="form-select" id="filterTrainTime" data-trigger-text="选择训练时间">
+            <option value="">全部</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <select class="form-select" id="filterStatus" data-trigger-text="选择状态">
+            <option value="">全部</option>
+            <option value="在读">在读</option>
+            <option value="毕业">毕业</option>
+            <option value="转校">转校</option>
+          </select>
+        </div>
+        <div class="filter-actions">
+          <button class="btn-primary" id="filterSearchBtn" style="height:40px">查询</button>
+          <button class="btn-secondary" id="filterResetBtn" style="height:40px">重置</button>
+        </div>
+      </div>
+      <div class="card-table-wrap">
+      <table class="member-table">
+        <thead>
+          <tr>
+            <th style="width:40px;text-align:center"><input type="checkbox" id="selectAll"></th>
+            <th>学号</th>
+            <th>健康ID</th>
+            <th>姓名</th>
+            <th>性别</th>
+            <th>年龄（周岁）</th>
+            <th>所在年级</th>
+            <th>所在班级</th>
+            <th>最近评估时间</th>
+            <th>最近训练时间</th>
+            <th>状态</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="recordTableBody">
+        </tbody>
+      </table>
+      </div>
+      <div class="record-pagination-row">
+        <div class="record-count" id="recordCount"></div>
+        <div style="display:flex;align-items:center;gap:16px">
+          <select class="page-size-select" id="pageSizeSelect">
+            <option value="20" selected>20条/页</option>
+            <option value="50">50条/页</option>
+            <option value="100">100条/页</option>
+          </select>
+          <div class="member-pagination" id="recordPagination"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 模板导入分步表单页 -->
+    <div class="import-page" id="importPage">
+      <div class="breadcrumbs">
+        <span class="breadcrumbs-item" id="breadcrumbBack">健康档案</span>
+        <span class="breadcrumbs-sep">/</span>
+        <span class="breadcrumbs-item active">模版导入</span>
+      </div>
+      <div class="settings-card">
+        <div class="step-indicator">
+          <div class="step-item active" id="stepItem1">
+            <div class="step-dot active" id="stepDot1">1</div>
+            <span class="step-label">模版下载</span>
+          </div>
+          <div class="step-line" id="stepLine1"></div>
+          <div class="step-item" id="stepItem2">
+            <div class="step-dot" id="stepDot2">2</div>
+            <span class="step-label">模版导入</span>
+          </div>
+        </div>
+
+        <div class="step-content active" id="step1Content">
+          <div class="step-title">模版下载</div>
+          <button class="download-btn" id="downloadTemplateBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            下载导入模版
+          </button>
+          <div class="step-notes" style="margin-top:24px">
+            <div class="step-notes-title">模版书写注意要点</div>
+            <ul>
+              <li>模版最多支持导入1000条数据</li>
+              <li>请勿修改模版中的表头列名及顺序，否则将导致解析失败</li>
+              <li>姓名为必填项，性别仅支持填写"男"或"女"</li>
+              <li>年龄为必填项，需填写实际年龄（周岁）数字</li>
+              <li>所属年级/班级需填写系统中已有的年级和班级名称，年级如"一年级"，班级如"1班"</li>
+              <li>学号为必填项，需填写学生的唯一学号，若留空则系统自动生成，生成规则为：年级+班级+序号，例如 0101001</li>
+              <li>健康ID导入成功后系统自动生成，生成规则为：HID+序号，例如 HID00001</li>
+              <li>每行代表一条档案记录，请勿在模版中插入空行</li>
+              <li>日期格式统一为 YYYY-MM-DD，例如 2026-07-02</li>
+              <li>文件格式须为 .xlsx 或 .csv，不支持其他格式</li>
+            </ul>
+          </div>
+          <div class="step-actions">
+            <button class="btn-secondary" id="step1Cancel">取消</button>
+            <button class="btn-primary" id="step1Next">下一步</button>
+          </div>
+        </div>
+
+        <div class="step-content" id="step2Content">
+          <div class="step-title">模版导入</div>
+          <div class="upload-area" id="uploadArea">
+            <div id="uploadContent">
+              <div class="upload-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+              </div>
+              <div class="upload-text">点击或拖拽文件至此区域上传</div>
+              <div class="upload-hint">支持 .xlsx / .csv 格式，单次最多导入1000条</div>
+            </div>
+            <div class="upload-file-info" id="uploadFileInfo">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;color:var(--accent-deep)"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+              <span class="upload-file-name" id="uploadFileName"></span>
+              <span class="upload-file-size" id="uploadFileSize"></span>
+              <span class="upload-remove" id="uploadRemoveBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </span>
+            </div>
+          </div>
+          <input type="file" id="uploadInput" accept=".xlsx,.csv" style="display:none">
+          <div class="step-actions">
+            <button class="btn-secondary" id="step2Prev">上一步</button>
+            <button class="btn-primary" id="step2Submit" disabled>开始导入</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 学生健康档案详情页 -->
+    <div class="detail-page" id="detailPage">
+      <div class="breadcrumbs">
+        <span class="breadcrumbs-item" id="detailBreadcrumbBack">健康档案</span>
+        <span class="breadcrumbs-sep">/</span>
+        <span class="breadcrumbs-item active" id="detailBreadcrumbName">学生姓名</span>
+      </div>
+
+      <!-- 卡片一：基本信息 -->
+      <div class="settings-card">
+        <div class="card-header">
+          <span class="card-title">基本信息</span>
+          <div class="card-header-actions">
+            <button class="btn-outline btn-danger-text" id="deleteInfoBtn">删除</button>
+            <button class="btn-outline" id="cancelEditBtn" style="display:none">取消</button>
+            <button class="btn-outline" id="editInfoBtn">编辑</button>
+          </div>
+        </div>
+        <div class="info-grid" id="infoGrid">
+          <div class="info-item">
+            <span class="info-label">健康ID</span>
+            <span class="info-value-static" id="infoHealthIdVal"></span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">档案创建时间</span>
+            <span class="info-value-static" id="infoCreateTimeVal"></span>
+          </div>
+          <div class="info-item" id="infoNameItem">
+            <span class="info-label">姓名<span class="info-required">*</span></span>
+            <span class="info-value" id="infoNameVal"></span>
+            <div class="info-value-edit">
+              <input class="info-edit-input" id="infoNameEdit" type="text" placeholder="请输入姓名" autocomplete="off">
+              <div class="info-edit-error" id="infoNameEditError">请输入姓名</div>
+            </div>
+          </div>
+          <div class="info-item" id="infoStudentNoItem">
+            <span class="info-label">学号<span class="info-required">*</span></span>
+            <span class="info-value" id="infoStudentNoVal"></span>
+            <div class="info-value-edit">
+              <input class="info-edit-input" id="infoStudentNoEdit" type="text" placeholder="请输入学号" autocomplete="off">
+              <div class="info-edit-error" id="infoStudentNoEditError">请输入学号</div>
+            </div>
+          </div>
+          <div class="info-item" id="infoGradeItem">
+            <span class="info-label">所在年级<span class="info-required">*</span></span>
+            <span class="info-value" id="infoGradeVal"></span>
+            <div class="info-value-edit">
+              <select class="info-edit-select" id="infoGradeEdit">
+                <option value="">请选择年级</option>
+              </select>
+              <div class="info-edit-error" id="infoGradeEditError">请选择年级</div>
+            </div>
+          </div>
+          <div class="info-item" id="infoClassItem">
+            <span class="info-label">所在班级<span class="info-required">*</span></span>
+            <span class="info-value" id="infoClassVal"></span>
+            <div class="info-value-edit">
+              <select class="info-edit-select" id="infoClassEdit" data-trigger-text="请选择班级">
+              </select>
+              <div class="info-edit-error" id="infoClassEditError">请选择班级</div>
+            </div>
+          </div>
+          <div class="info-item" id="infoAgeItem">
+            <span class="info-label">年龄（周岁）<span class="info-required">*</span></span>
+            <span class="info-value" id="infoAgeVal"></span>
+            <div class="info-value-edit">
+              <input class="info-edit-input" id="infoAgeEdit" type="text" placeholder="请输入年龄" autocomplete="off">
+              <div class="info-edit-error" id="infoAgeEditError">请输入有效的年龄(1-20)</div>
+            </div>
+          </div>
+          <div class="info-item" id="infoGenderItem">
+            <span class="info-label">性别<span class="info-required">*</span></span>
+            <span class="info-value" id="infoGenderVal"></span>
+            <div class="info-value-edit">
+              <select class="info-edit-select" id="infoGenderEdit">
+                <option value="男">男</option>
+                <option value="女">女</option>
+              </select>
+              <div class="info-edit-error" id="infoGenderEditError">请选择性别</div>
+            </div>
+          </div>
+          <div class="info-item" id="infoStatusItem">
+            <span class="info-label">状态<span class="info-required">*</span></span>
+            <span class="info-value" id="infoStatusVal"></span>
+            <div class="info-value-edit">
+              <select class="info-edit-select" id="infoStatusEdit">
+                <option value="在读">在读</option>
+                <option value="毕业">毕业</option>
+                <option value="转校">转校</option>
+              </select>
+              <div class="info-edit-error" id="infoStatusEditError">请选择状态</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 卡片二 + 卡片三 并排 -->
+      <div class="detail-row">
+        <!-- 卡片二：视力健康记录 -->
+        <div class="settings-card detail-record-card">
+          <div class="card-header">
+            <span class="card-title">视力健康记录</span>
+          </div>
+          <div class="detail-record-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th class="detail-type-th">类型 <span class="detail-type-filter" id="detailTypeFilterIcon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;vertical-align:middle;cursor:pointer"><polygon points="22 3 2 3 10 12 10 19 14 16 14 12"></polygon></svg>
+                  </span>
+                  <div class="detail-type-dropdown" id="detailTypeDropdown">
+                    <label class="detail-type-option"><input type="radio" name="detailTypeFilter" value="" checked>全部</label>
+                    <label class="detail-type-option"><input type="radio" name="detailTypeFilter" value="视力评估">视力评估</label>
+                    <label class="detail-type-option"><input type="radio" name="detailTypeFilter" value="视力训练">视力训练</label>
+                  </div>
+                  </th>
+                  <th>记录时间</th>
+                  <th>视力/时长</th>
+                </tr>
+              </thead>
+              <tbody id="detailRecordBody"></tbody>
+            </table>
+          </div>
+          <div class="detail-record-nav">
+            <span class="detail-record-count" id="detailRecordCount"></span>
+            <div class="member-pagination" id="detailRecordPagination"></div>
+          </div>
+        </div>
+
+        <!-- 卡片三：视力健康趋势 -->
+        <div class="settings-card detail-chart-card">
+          <div class="card-header">
+            <span class="card-title">视力健康趋势</span>
+            <div style="display:flex;align-items:center;gap:12px;margin-left:auto">
+              <div class="chart-legend">
+                <span class="chart-legend-dot" style="background:#0fa76e"></span>视力曲线
+                <span class="chart-legend-dot" style="background:#8b5cf6;margin-left:4px"></span>训练时长
+              </div>
+              <div style="position:relative" id="trendYearFilter">
+                <div class="ms-trigger" id="trendYearTrigger">
+                  <span id="trendYearLabel" style="flex:1">2026年</span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+                <div class="ms-dropdown" id="trendYearDropdown">
+                  <div class="ms-options" id="trendYearOptions"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="detail-chart-wrap">
+            <canvas id="trendChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- 退出登录确认对话框 -->
+<div class="confirm-overlay" id="logoutOverlay">
+  <div class="confirm-box">
+    <div class="confirm-title">确认退出</div>
+    <div class="confirm-msg">确定退出登录？</div>
+    <div class="confirm-actions">
+      <button class="confirm-btn confirm-btn-cancel" id="logoutCancel">取消</button>
+      <button class="confirm-btn confirm-btn-danger" id="logoutConfirm">退出登录</button>
+    </div>
+  </div>
+</div>
+
+<!-- 删除档案确认对话框 -->
+<div class="confirm-overlay" id="deleteArchiveOverlay">
+  <div class="confirm-box">
+    <div class="confirm-title">是否删除该档案？</div>
+    <div class="confirm-msg">删除后不可恢复，请谨慎操作。</div>
+    <div class="confirm-actions">
+      <button class="confirm-btn confirm-btn-cancel" id="deleteArchiveCancel">取消</button>
+      <button class="confirm-btn confirm-btn-danger" id="deleteArchiveConfirm">确认删除</button>
+    </div>
+  </div>
+</div>
+
+<!-- 新建档案抽屉 -->
+<div class="drawer-overlay" id="newRecordDrawer">
+  <div class="drawer-panel">
+    <div class="drawer-header">
+      <div class="drawer-header-title">新建档案</div>
+      <button class="drawer-close" id="drawerCloseBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+    <div class="drawer-body">
+      <div class="drawer-form-group">
+        <label class="drawer-form-label">姓名<span class="required">*</span></label>
+        <input class="drawer-form-input" id="drawerName" type="text" placeholder="请输入姓名" autocomplete="off">
+        <div class="drawer-form-error" id="drawerNameError">请输入姓名</div>
+      </div>
+      <div class="drawer-form-group">
+        <label class="drawer-form-label">年龄<span class="required">*</span></label>
+        <input class="drawer-form-input" id="drawerAge" type="number" min="1" max="20" placeholder="请输入年龄" autocomplete="off">
+        <div class="drawer-form-error" id="drawerAgeError">请输入有效的年龄(1-20)</div>
+      </div>
+      <div class="drawer-form-group">
+        <label class="drawer-form-label">性别<span class="required">*</span></label>
+        <select class="drawer-form-select" id="drawerGender" data-trigger-text="请选择性别">
+          <option value="男">男</option>
+          <option value="女">女</option>
+        </select>
+        <div class="drawer-form-error" id="drawerGenderError">请选择性别</div>
+      </div>
+      <div class="drawer-form-group">
+        <label class="drawer-form-label">所在年级/班级<span class="required">*</span></label>
+        <div class="custom-select-wrap" id="drawerCascadeWrap">
+          <div class="custom-select-trigger" id="drawerCascadeTrigger">
+            <span id="drawerCascadeTriggerText" class="cs-placeholder">请选择年级-班级</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;flex-shrink:0"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </div>
+          <div class="custom-select-menu cascaded-menu" id="drawerCascadeMenu">
+            <div class="cascaded-level" id="drawerCascadeLevel1"></div>
+            <div class="cascaded-level" id="drawerCascadeLevel2"></div>
+          </div>
+        </div>
+        <div class="drawer-form-error" id="drawerClassError">请选择所属年级/班级</div>
+      </div>
+      <div class="drawer-form-group">
+        <label class="drawer-form-label">学号<span class="required">*</span></label>
+        <input class="drawer-form-input" id="drawerStudentNo" type="text" placeholder="请输入学号" autocomplete="off">
+        <div class="drawer-form-error" id="drawerStudentNoError">请输入学号</div>
+      </div>
+    </div>
+    <div class="drawer-footer">
+      <button class="btn-secondary" id="drawerCancelBtn">取消</button>
+      <button class="btn-primary" id="drawerSaveBtn">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  'use strict';
+
+  var msgPanel = document.getElementById('msgPanel');
+  var userPanel = document.getElementById('userPanel');
+  var sidebarUser = document.getElementById('sidebarUser');
+  var sidebarMsgBtn = document.getElementById('sidebarMsgBtn');
+  var sidebarHelpBtn = document.getElementById('sidebarHelpBtn');
+
+  function closeAll() {
+    msgPanel.classList.remove('open');
+    userPanel.classList.remove('open');
+  }
+
+  sidebarUser.addEventListener('click', function(e) {
+    e.stopPropagation();
+    var isOpen = userPanel.classList.contains('open');
+    closeAll();
+    if (!isOpen) userPanel.classList.add('open');
+  });
+
+  sidebarMsgBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    var isOpen = msgPanel.classList.contains('open');
+    closeAll();
+    if (!isOpen) msgPanel.classList.add('open');
+  });
+
+  sidebarHelpBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    closeAll();
+  });
+
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.sidebar-bottom-btn') && !e.target.closest('.sidebar-user') && !e.target.closest('.sidebar-user-dropdown') && !e.target.closest('.sidebar-msg-panel')) closeAll();
+  });
+
+  /* ─── logout with confirm ──────────────────────────────────── */
+  var logoutOverlay = document.getElementById('logoutOverlay');
+  document.getElementById('logoutBtn').addEventListener('click', function() {
+    closeAll();
+    logoutOverlay.classList.add('open');
+  });
+  document.getElementById('logoutCancel').addEventListener('click', function() {
+    logoutOverlay.classList.remove('open');
+  });
+  document.getElementById('logoutConfirm').addEventListener('click', function() {
+    window.location.href = 'login.html';
+  });
+  logoutOverlay.addEventListener('click', function(e) {
+    if (e.target === logoutOverlay) logoutOverlay.classList.remove('open');
+  });
+
+  /* ─── message panel: clear all ──────────────────────────────── */
+  var msgClearBtn = document.getElementById('msgClearBtn');
+  if (msgClearBtn) {
+    msgClearBtn.addEventListener('click', function() {
+      var list = document.getElementById('msgList');
+      list.innerHTML = '';
+      var badge = document.getElementById('sidebarMsgBadge');
+      if (badge) {
+        badge.textContent = '0';
+        badge.style.display = 'none';
+      }
+      var empty = document.getElementById('msgEmpty');
+      if (empty) empty.style.display = '';
+    });
+  }
+
+  /* ─── message panel: mark as read on click ──────────────────── */
+  var msgList = document.getElementById('msgList');
+  if (msgList) {
+    msgList.addEventListener('click', function(e) {
+      var item = e.target.closest('.msg-item');
+      if (item) {
+        item.dataset.read = 'true';
+        item.style.opacity = '0.5';
+      }
+    });
+  }
+
+  /* ─── message panel: view all → navigate to index ──────────── */
+  var msgViewAll = document.getElementById('msgViewAll');
+  if (msgViewAll) {
+    msgViewAll.addEventListener('click', function() {
+      closeAll();
+      window.location.href = 'index.html';
+    });
+  }
+
+  /* ─── health records list ─────────────────────────────────── */
+  var recordData = [];
+  var classes = ['一年级1班','一年级2班','二年级1班','二年级2班','三年级1班','三年级2班','四年级1班','四年级2班','五年级1班','五年级2班','六年级1班','六年级2班'];
+  var names = ['张小明','李思涵','王宇轩','刘欣怡','陈浩然','杨雨萱','赵天宇','黄诗琪','周博文','吴雅婷','郑凯瑞','孙梦瑶','马逸飞','朱晓晨','胡佳慧','林睿杰','何思远','罗语嫣','谢铭轩','邓雨桐','曹子涵','许嘉琪','宋天乐','韩诗涵','冯浩宇','蒋欣然','唐雨轩','董雅琪','彭博文','潘梦琪','袁逸飞','于晓晨','何佳慧','余睿杰','卢思远','姚语嫣','任铭轩','石雨桐','高子涵','段嘉琪'];
+  var surnames = ['张','李','王','刘','陈','杨','赵','黄','周','吴','郑','孙','马','朱','胡','林','何','罗','谢','邓','曹','许','宋','韩','冯','蒋','唐','董','彭','潘','袁','于','何','余','卢','姚','任','石','高','段'];
+  var maleNames = ['小明','浩然','天宇','博文','凯瑞','逸飞','铭轩','睿杰','思远','天乐','浩宇','晓晨','子涵','博文','铭轩','逸飞','睿杰','思远','天乐','浩宇'];
+  var femaleNames = ['思涵','欣怡','雨萱','诗琪','雅婷','梦瑶','佳慧','语嫣','雨桐','嘉琪','诗涵','欣然','雨轩','雅琪','梦琪','晓晨','佳慧','语嫣','雨桐','嘉琪'];
+
+  // 生成日期选项
+  var dateOptions = [];
+  var dateBase = new Date(2026, 5, 23); // 2026-06-23
+  for (var d = 0; d < 14; d++) {
+    var dt = new Date(dateBase);
+    dt.setDate(dt.getDate() - d);
+    var yyyy = dt.getFullYear();
+    var mm = String(dt.getMonth() + 1).padStart(2, '0');
+    var dd = String(dt.getDate()).padStart(2, '0');
+    dateOptions.push(yyyy + '-' + mm + '-' + dd);
+  }
+
+  // 填充评估时间、训练时间下拉
+  var filterAssessTimeSelect = document.getElementById('filterAssessTime');
+  var filterTrainTimeSelect = document.getElementById('filterTrainTime');
+  dateOptions.forEach(function(d) {
+    var opt1 = document.createElement('option');
+    opt1.value = d; opt1.textContent = d;
+    filterAssessTimeSelect.appendChild(opt1);
+    var opt2 = document.createElement('option');
+    opt2.value = d; opt2.textContent = d;
+    filterTrainTimeSelect.appendChild(opt2);
+  });
+
+  for (var i = 0; i < 80; i++) {
+    var gender = (i % 2 === 0) ? '男' : '女';
+    var status;
+    if (i < 50) status = '在读';
+    else if (i < 65) status = '毕业';
+    else status = '转校';
+    var clsIdx = Math.floor(i / 7);
+    if (clsIdx >= classes.length) clsIdx = classes.length - 1;
+    var studentNo = '2026' + String(i + 1).padStart(3, '0');
+    var healthId = 'HID' + String(10001 + i);
+    var name = (i < names.length) ? names[i] : surnames[i % surnames.length] + (gender === '男' ? maleNames[i % maleNames.length] : femaleNames[i % femaleNames.length]);
+    var assessIdx = Math.floor(Math.random() * dateOptions.length);
+    var trainIdx = Math.floor(Math.random() * dateOptions.length);
+    if (trainIdx < assessIdx) trainIdx = assessIdx;
+    var lastAssessTime = dateOptions[assessIdx];
+    var lastTrainTime = dateOptions[trainIdx];
+    recordData.push({
+      name: name,
+      studentNo: studentNo,
+      gender: gender,
+      class: classes[clsIdx],
+      healthId: healthId,
+      lastAssessTime: lastAssessTime,
+      lastTrainTime: lastTrainTime,
+      status: status,
+      age: Math.floor(Math.random() * 7) + 6
+    });
+  }
+
+  var recordPageSize = 20;
+  var pageSizeSelect = document.getElementById('pageSizeSelect');
+  pageSizeSelect.addEventListener('change', function() {
+    recordPageSize = parseInt(this.value);
+    recordCurrentPage = 1;
+    renderRecordTable();
+  });
+  var recordCurrentPage = 1;
+  var recordTableBody = document.getElementById('recordTableBody');
+  var recordPagination = document.getElementById('recordPagination');
+  var recordCountEl = document.getElementById('recordCount');
+  var filterNameInput = document.getElementById('filterName');
+  var filterHealthIdInput = document.getElementById('filterHealthId');
+  var filterStudentNoInput = document.getElementById('filterStudentNo');
+  var filterStatusSelect = document.getElementById('filterStatus');
+  var filterAssessTimeSelect = document.getElementById('filterAssessTime');
+  var filterTrainTimeSelect = document.getElementById('filterTrainTime');
+
+  // ─── cascaded grade-class selector ─────────────────────────
+  var gradeClassMap = {};
+  classes.forEach(function(cls) {
+    var match = cls.match(/^(.+年级)(\d+班)$/);
+    if (match) {
+      if (!gradeClassMap[match[1]]) gradeClassMap[match[1]] = [];
+      if (gradeClassMap[match[1]].indexOf(match[2]) === -1) gradeClassMap[match[1]].push(match[2]);
+    }
+  });
+  var gradeList = Object.keys(gradeClassMap).sort();
+  var selGrade = '';
+  var selClass = '';
+
+  var cascadeTrigger = document.getElementById('cascadeTrigger');
+  var cascadeTriggerText = document.getElementById('cascadeTriggerText');
+  var cascadeMenu = document.getElementById('cascadeMenu');
+  var cascadeLevel1 = document.getElementById('cascadeLevel1');
+  var cascadeLevel2 = document.getElementById('cascadeLevel2');
+
+  function openCascadeMenu() { cascadeMenu.classList.add('open'); cascadeTrigger.classList.add('open'); }
+  function closeCascadeMenu() { cascadeMenu.classList.remove('open'); cascadeTrigger.classList.remove('open'); }
+
+  var activeGrade = ''; // grade currently previewed in the left panel
+
+  function renderLevel1() {
+    cascadeLevel1.innerHTML = '';
+    // All grades
+    var allItem = document.createElement('div');
+    allItem.className = 'cascaded-item cascaded-all' + (!activeGrade ? ' selected' : '');
+    allItem.textContent = '全部年级';
+    allItem.addEventListener('click', function(e) {
+      e.stopPropagation();
+      activeGrade = '';
+      selGrade = '';
+      selClass = '';
+      renderLevel1();
+      renderLevel2();
+      updateCascadeTrigger();
+      closeCascadeMenu();
+    });
+    cascadeLevel1.appendChild(allItem);
+    // Grade list
+    gradeList.forEach(function(g) {
+      var item = document.createElement('div');
+      item.className = 'cascaded-item' + (activeGrade === g ? ' selected' : '');
+      item.innerHTML = '<span>' + g + '</span><span class="cascade-chevron" style="color:var(--muted-light);font-size:16px;margin-left:auto">›</span>';
+      item.addEventListener('click', function(e) {
+        e.stopPropagation();
+        activeGrade = g;
+        renderLevel1();
+        renderLevel2();
+      });
+      cascadeLevel1.appendChild(item);
+    });
+  }
+
+  function renderLevel2() {
+    cascadeLevel2.innerHTML = '';
+    if (!activeGrade) {
+      cascadeLevel2.style.display = 'none';
+      return;
+    }
+    cascadeLevel2.style.display = '';
+    // All classes for the active grade
+    var allItem = document.createElement('div');
+    allItem.className = 'cascaded-item cascaded-all' + (selGrade === activeGrade && !selClass ? ' selected' : '');
+    allItem.textContent = '全部';
+    allItem.addEventListener('click', function(e) {
+      e.stopPropagation();
+      selGrade = activeGrade;
+      selClass = '';
+      updateCascadeTrigger();
+      closeCascadeMenu();
+    });
+    cascadeLevel2.appendChild(allItem);
+    // Class list
+    var list = gradeClassMap[activeGrade] || [];
+    if (list.length) {
+      list.forEach(function(c) {
+        var item = document.createElement('div');
+        item.className = 'cascaded-item' + (selGrade === activeGrade && selClass === c ? ' selected' : '');
+        item.textContent = c;
+        item.addEventListener('click', function(e) {
+          e.stopPropagation();
+          selGrade = activeGrade;
+          selClass = c;
+          updateCascadeTrigger();
+          closeCascadeMenu();
+        });
+        cascadeLevel2.appendChild(item);
+      });
+    } else {
+      var empty = document.createElement('div');
+      empty.className = 'cascaded-item cascaded-empty';
+      empty.textContent = '暂无班级';
+      cascadeLevel2.appendChild(empty);
+    }
+  }
+
+  function showLevel1() {
+    activeGrade = selGrade; // preview starts from current selection
+    renderLevel1();
+    renderLevel2();
+  }
+
+  function updateCascadeTrigger() {
+    if (selGrade && selClass) {
+      cascadeTriggerText.textContent = selGrade + ' - ' + selClass;
+      cascadeTriggerText.className = '';
+    } else if (selGrade) {
+      cascadeTriggerText.textContent = selGrade;
+      cascadeTriggerText.className = '';
+    } else {
+      cascadeTriggerText.textContent = '请选择年级-班级';
+      cascadeTriggerText.className = 'cs-placeholder';
+    }
+  }
+
+  function filterAndRender() { recordCurrentPage = 1; renderRecordTable(); }
+
+  cascadeTrigger.addEventListener('click', function(e) {
+    e.stopPropagation();
+    if (cascadeMenu.classList.contains('open')) { closeCascadeMenu(); return; }
+    showLevel1();
+    openCascadeMenu();
+  });
+  document.addEventListener('click', function(e) {
+    if (!document.getElementById('cascadeWrap').contains(e.target)) closeCascadeMenu();
+  });
+
+  function getFilteredRecords() {
+    var nameVal = filterNameInput.value.trim();
+    var healthIdVal = filterHealthIdInput.value.trim();
+    var studentNoVal = filterStudentNoInput.value.trim();
+    var statusVal = filterStatusSelect.value;
+    var assessTimeVal = filterAssessTimeSelect.value;
+    var trainTimeVal = filterTrainTimeSelect.value;
+    return recordData.filter(function(r) {
+      if (selGrade && r.class.indexOf(selGrade) !== 0) return false;
+      if (selClass && r.class.indexOf(selClass) === -1) return false;
+      if (nameVal && r.name.indexOf(nameVal) === -1) return false;
+      if (healthIdVal && r.healthId.indexOf(healthIdVal) === -1) return false;
+      if (studentNoVal && r.studentNo.indexOf(studentNoVal) === -1) return false;
+      if (assessTimeVal && r.lastAssessTime !== assessTimeVal) return false;
+      if (trainTimeVal && r.lastTrainTime !== trainTimeVal) return false;
+      if (statusVal && r.status !== statusVal) return false;
+      return true;
+    });
+  }
+
+  function renderRecordTable() {
+    var filtered = getFilteredRecords();
+    var total = filtered.length;
+    var totalPages = Math.max(1, Math.ceil(total / recordPageSize));
+    if (recordCurrentPage > totalPages) recordCurrentPage = totalPages;
+
+    var start = (recordCurrentPage - 1) * recordPageSize;
+    var pageData = filtered.slice(start, start + recordPageSize);
+
+    recordTableBody.innerHTML = '';
+    if (pageData.length === 0) {
+      recordTableBody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:var(--muted-light);padding:40px 0">暂无数据</td></tr>';
+    } else {
+      pageData.forEach(function(r) {
+        var tr = document.createElement('tr');
+        var statusClass = r.status === '在读' ? 'st-active' : r.status === '毕业' ? 'st-graduated' : 'st-transfer';
+        tr.innerHTML =
+          '<td style="text-align:center"><input type="checkbox" class="row-checkbox" data-id="' + r.healthId + '"></td>' +
+          '<td>' + r.studentNo + '</td>' +
+          '<td>' + r.healthId + '</td>' +
+          '<td>' + r.name + '</td>' +
+          '<td>' + r.gender + '</td>' +
+          '<td>' + r.age + '</td>' +
+          '<td>' + r.class.replace(/(\d+班)$/, '') + '</td>' +
+          '<td>' + (r.class.match(/(\d+班)$/) || [''])[0] + '</td>' +
+          '<td>' + r.lastAssessTime + '</td>' +
+          '<td>' + r.lastTrainTime + '</td>' +
+          '<td><span class="status-badge ' + statusClass + '">' + r.status + '</span></td>' +
+          '<td><button class="member-action" data-detail-idx="' + r.healthId + '">详情</button></td>';
+        recordTableBody.appendChild(tr);
+      });
+    }
+
+    recordCountEl.textContent = '共 ' + total + ' 条数据';
+
+    recordPagination.innerHTML = '';
+    if (totalPages > 1) {
+      var prevBtn = document.createElement('button');
+      prevBtn.className = 'member-page-btn';
+      prevBtn.textContent = '‹';
+      prevBtn.disabled = recordCurrentPage === 1;
+      prevBtn.addEventListener('click', function(){ recordCurrentPage--; renderRecordTable(); });
+      recordPagination.appendChild(prevBtn);
+
+      for (var p = 1; p <= totalPages; p++) {
+        var btn = document.createElement('button');
+        btn.className = 'member-page-btn' + (p === recordCurrentPage ? ' active' : '');
+        btn.textContent = p;
+        btn.addEventListener('click', function(pg){ return function(){ recordCurrentPage = pg; renderRecordTable(); }; }(p));
+        recordPagination.appendChild(btn);
+      }
+
+      var nextBtn = document.createElement('button');
+      nextBtn.className = 'member-page-btn';
+      nextBtn.textContent = '›';
+      nextBtn.disabled = recordCurrentPage === totalPages;
+      nextBtn.addEventListener('click', function(){ recordCurrentPage++; renderRecordTable(); });
+      recordPagination.appendChild(nextBtn);
+    }
+  }
+
+  document.getElementById('filterSearchBtn').addEventListener('click', function() {
+    recordCurrentPage = 1;
+    renderRecordTable();
+  });
+
+  document.getElementById('filterResetBtn').addEventListener('click', function() {
+    selGrade = '';
+    selClass = '';
+    updateCascadeTrigger();
+    filterNameInput.value = '';
+    filterHealthIdInput.value = '';
+    filterStudentNoInput.value = '';
+    // Reset custom dropdown selects to first option
+    [filterAssessTimeSelect, filterTrainTimeSelect, filterStatusSelect].forEach(function(sel) {
+      sel.selectedIndex = 0;
+      var wrap = sel.nextElementSibling;
+      if (wrap && wrap.classList.contains('custom-select-wrap')) {
+        var trig = wrap.querySelector('.custom-select-trigger');
+        var txt = trig ? trig.querySelector('span') : null;
+        if (txt) txt.textContent = sel.dataset.triggerText || sel.options[0].text;
+        var mnu = wrap.querySelector('.custom-select-menu');
+        if (mnu) {
+          mnu.querySelectorAll('.custom-select-item').forEach(function(it) {
+            it.classList.toggle('selected', it.dataset.value === '');
+          });
+          mnu.classList.remove('open');
+        }
+        if (trig) trig.classList.remove('open');
+      }
+    });
+    selectAllCheckbox.checked = false;
+    document.querySelectorAll('.row-checkbox').forEach(function(cb) { cb.checked = false; });
+    recordCurrentPage = 1;
+    renderRecordTable();
+  });
+
+  renderRecordTable();
+
+  /* ─── select all checkbox ──────────────────────────────────── */
+  var selectAllCheckbox = document.getElementById('selectAll');
+  selectAllCheckbox.addEventListener('change', function() {
+    var checkboxes = document.querySelectorAll('.row-checkbox');
+    checkboxes.forEach(function(cb) { cb.checked = selectAllCheckbox.checked; });
+  });
+
+  /* ─── global message ──────────────────────────────────────────── */
+  var messageContainer = document.getElementById('messageContainer');
+  var messageTimers = {};
+
+  function showMessage(id, type, msg, duration) {
+    // Remove existing message with same id if present
+    var existing = document.getElementById('message-' + id);
+    if (existing) { existing.remove(); clearTimeout(messageTimers[id]); }
+
+    var message = document.createElement('div');
+    message.className = 'message message-' + type;
+    message.id = 'message-' + id;
+
+    var iconSvg = '';
+    if (type === 'warning') {
+      iconSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>';
+    } else if (type === 'success') {
+      iconSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>';
+    } else if (type === 'loading') {
+      iconSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" opacity=".3"></path><path d="M12 2v4" opacity="1"></path></svg>';
+    }
+
+    if (type === 'loading') {
+      message.innerHTML = '<div class="message-spinner">' + iconSvg + '</div><span>' + msg + '</span>';
+    } else {
+      message.innerHTML = '<div class="message-icon">' + iconSvg + '</div><span>' + msg + '</span>';
+    }
+
+    messageContainer.appendChild(message);
+    // Trigger animation
+    requestAnimationFrame(function() { message.classList.add('show'); });
+
+    if (duration) {
+      messageTimers[id] = setTimeout(function() {
+        message.classList.remove('show');
+        setTimeout(function() { message.remove(); }, 300);
+      }, duration);
+    }
+  }
+
+  function hideMessage(id) {
+    var message = document.getElementById('message-' + id);
+    if (message) {
+      message.classList.remove('show');
+      // Wait for animation to complete before removing from DOM
+      return new Promise(function(resolve) {
+        setTimeout(function() { message.remove(); resolve(); }, 300);
+      });
+    }
+    clearTimeout(messageTimers[id]);
+    return Promise.resolve();
+  }
+
+  /* ─── export button ────────────────────────────────────────── */
+  document.getElementById('exportBtn').addEventListener('click', function() {
+    var checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+    if (checkedBoxes.length === 0) {
+      showMessage('export-warn', 'warning', '请选择需要导出的数据', 3000);
+      return;
+    }
+
+    showMessage('export-loading', 'loading', '正在导出，请勿刷新或离开页面');
+
+    setTimeout(function() {
+      var selectedIds = [];
+      checkedBoxes.forEach(function(cb) { selectedIds.push(cb.getAttribute('data-id')); });
+
+      var selectedRecords = recordData.filter(function(r) { return selectedIds.indexOf(r.healthId) !== -1; });
+      var csvContent = '学号,健康ID,姓名,性别,年龄,年级,班级,最近评估时间,最近训练时间,状态\n';
+      selectedRecords.forEach(function(r) {
+        csvContent += r.studentNo + ',' + r.healthId + ',' + r.name + ',' + r.gender + ',' + r.age + ',' + r.class.replace(/(\d+班)$/, '') + ',' + (r.class.match(/(\d+班)$/) || [''])[0] + ',' + r.lastAssessTime + ',' + r.lastTrainTime + ',' + r.status + '\n';
+      });
+
+      var blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      var link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      var now = new Date();
+      var dateStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+      var seq = String(Math.floor(Math.random() * 900) + 100);
+      link.download = dateStr + '_' + seq + '.csv';
+      link.click();
+
+      hideMessage('export-loading').then(function() {
+        showMessage('export-success', 'success', '数据导出成功', 3000);
+      });
+    }, 1500);
+  });
+  /* ─── drawer: new record ────────────────────────────────────── */
+  var drawerOverlay = document.getElementById('newRecordDrawer');
+  var drawerNameInput = document.getElementById('drawerName');
+  var drawerAgeInput = document.getElementById('drawerAge');
+  var drawerGenderSelect = document.getElementById('drawerGender');
+  var drawerStudentNoInput = document.getElementById('drawerStudentNo');
+  var drawerNameError = document.getElementById('drawerNameError');
+  var drawerAgeError = document.getElementById('drawerAgeError');
+  var drawerGenderError = document.getElementById('drawerGenderError');
+  var drawerClassError = document.getElementById('drawerClassError');
+  var drawerStudentNoError = document.getElementById('drawerStudentNoError');
+
+  // ─── drawer cascade grade-class selector ──────────────────
+  var drawerSelGrade = '';
+  var drawerSelClass = '';
+  var drawerCascadeWrap = document.getElementById('drawerCascadeWrap');
+  var drawerCascadeTrigger = document.getElementById('drawerCascadeTrigger');
+  var drawerCascadeTriggerText = document.getElementById('drawerCascadeTriggerText');
+  var drawerCascadeMenu = document.getElementById('drawerCascadeMenu');
+  var drawerCascadeLevel1 = document.getElementById('drawerCascadeLevel1');
+  var drawerCascadeLevel2 = document.getElementById('drawerCascadeLevel2');
+  var drawerActiveGrade = '';
+
+  function drawerRenderLevel1() {
+    drawerCascadeLevel1.innerHTML = '';
+    gradeList.forEach(function(g) {
+      var item = document.createElement('div');
+      item.className = 'cascaded-item' + (drawerActiveGrade === g ? ' selected' : '');
+      item.innerHTML = '<span>' + g + '</span><span class="cascade-chevron" style="color:var(--muted-light);font-size:16px;margin-left:auto">›</span>';
+      item.addEventListener('click', function(e) {
+        e.stopPropagation();
+        drawerActiveGrade = g;
+        drawerRenderLevel1();
+        drawerRenderLevel2();
+      });
+      drawerCascadeLevel1.appendChild(item);
+    });
+  }
+
+  function drawerRenderLevel2() {
+    drawerCascadeLevel2.innerHTML = '';
+    if (!drawerActiveGrade) {
+      drawerCascadeLevel2.style.display = 'none';
+      return;
+    }
+    drawerCascadeLevel2.style.display = '';
+    var list = gradeClassMap[drawerActiveGrade] || [];
+    if (list.length) {
+      list.forEach(function(c) {
+        var item = document.createElement('div');
+        item.className = 'cascaded-item' + (drawerSelGrade === drawerActiveGrade && drawerSelClass === c ? ' selected' : '');
+        item.textContent = c;
+        item.addEventListener('click', function(e) {
+          e.stopPropagation();
+          drawerSelGrade = drawerActiveGrade;
+          drawerSelClass = c;
+          drawerCascadeTriggerText.textContent = drawerSelGrade + ' - ' + c;
+          drawerCascadeTriggerText.className = '';
+          drawerClassError.classList.remove('show');
+          drawerCloseCascade();
+        });
+        drawerCascadeLevel2.appendChild(item);
+      });
+    } else {
+      var empty = document.createElement('div');
+      empty.className = 'cascaded-item cascaded-empty';
+      empty.textContent = '暂无班级';
+      drawerCascadeLevel2.appendChild(empty);
+    }
+  }
+
+  function drawerShowLevel1() {
+    drawerActiveGrade = drawerSelGrade;
+    drawerRenderLevel1();
+    drawerRenderLevel2();
+  }
+
+  function drawerOpenCascade() { drawerCascadeMenu.classList.add('open'); drawerCascadeTrigger.classList.add('open'); }
+  function drawerCloseCascade() { drawerCascadeMenu.classList.remove('open'); drawerCascadeTrigger.classList.remove('open'); }
+
+  drawerCascadeTrigger.addEventListener('click', function(e) {
+    e.stopPropagation();
+    if (drawerCascadeMenu.classList.contains('open')) { drawerCloseCascade(); return; }
+    drawerShowLevel1();
+    drawerOpenCascade();
+  });
+  document.addEventListener('click', function(e) {
+    if (!drawerCascadeWrap.contains(e.target)) drawerCloseCascade();
+  });
+
+  function openDrawer() {
+    drawerNameInput.value = '';
+    drawerAgeInput.value = '';
+    drawerGenderSelect.selectedIndex = -1;
+    refreshCustomSelect(drawerGenderSelect);
+    drawerStudentNoInput.value = '';
+    drawerSelGrade = '';
+    drawerSelClass = '';
+    drawerCascadeTriggerText.textContent = '请选择年级-班级';
+    drawerCascadeTriggerText.className = 'cs-placeholder';
+    drawerNameInput.classList.remove('error');
+    drawerAgeInput.classList.remove('error');
+    drawerGenderSelect.classList.remove('error');
+    drawerStudentNoInput.classList.remove('error');
+    drawerNameError.classList.remove('show');
+    drawerAgeError.classList.remove('show');
+    drawerGenderError.classList.remove('show');
+    drawerClassError.classList.remove('show');
+    drawerStudentNoError.classList.remove('show');
+    drawerOverlay.classList.add('open');
+  }
+
+  function closeDrawer() {
+    drawerOverlay.classList.remove('open');
+  }
+
+  document.getElementById('newRecordBtn').addEventListener('click', openDrawer);
+  document.getElementById('drawerCloseBtn').addEventListener('click', closeDrawer);
+  document.getElementById('drawerCancelBtn').addEventListener('click', closeDrawer);
+
+  document.getElementById('drawerSaveBtn').addEventListener('click', function() {
+    var nameVal = drawerNameInput.value.trim();
+    var ageVal = drawerAgeInput.value.trim();
+    var genderVal = drawerGenderSelect.value;
+    var studentNoVal = drawerStudentNoInput.value.trim();
+    var valid = true;
+
+    if (!nameVal) {
+      drawerNameInput.classList.add('error');
+      drawerNameError.classList.add('show');
+      valid = false;
+    } else {
+      drawerNameInput.classList.remove('error');
+      drawerNameError.classList.remove('show');
+    }
+
+    if (!ageVal || isNaN(ageVal) || parseInt(ageVal) < 1 || parseInt(ageVal) > 20) {
+      drawerAgeInput.classList.add('error');
+      drawerAgeError.classList.add('show');
+      valid = false;
+    } else {
+      drawerAgeInput.classList.remove('error');
+      drawerAgeError.classList.remove('show');
+    }
+
+    if (!genderVal) {
+      drawerGenderSelect.classList.add('error');
+      drawerGenderError.classList.add('show');
+      valid = false;
+    } else {
+      drawerGenderSelect.classList.remove('error');
+      drawerGenderError.classList.remove('show');
+    }
+
+    if (!drawerSelGrade || !drawerSelClass) {
+      drawerClassError.textContent = '请选择所属年级/班级';
+      drawerClassError.classList.add('show');
+      valid = false;
+    } else {
+      drawerClassError.classList.remove('show');
+    }
+
+    if (!studentNoVal) {
+      drawerStudentNoInput.classList.add('error');
+      drawerStudentNoError.classList.add('show');
+      valid = false;
+    } else {
+      drawerStudentNoInput.classList.remove('error');
+      drawerStudentNoError.classList.remove('show');
+    }
+
+    if (!valid) return;
+
+    var classVal = drawerSelGrade + drawerSelClass;
+    var newId = 'HID' + String(10001 + recordData.length);
+    var assessIdx = Math.floor(Math.random() * dateOptions.length);
+    var trainIdx = Math.floor(Math.random() * dateOptions.length);
+    if (trainIdx < assessIdx) trainIdx = assessIdx;
+
+    recordData.push({
+      name: nameVal,
+      studentNo: studentNoVal,
+      gender: genderVal,
+      class: classVal,
+      healthId: newId,
+      age: parseInt(ageVal),
+      lastAssessTime: dateOptions[assessIdx],
+      lastTrainTime: dateOptions[trainIdx],
+      status: '在读'
+    });
+
+    closeDrawer();
+    showMessage('new-record-success', 'success', '档案新建成功，健康ID已生成', 3000);
+    recordCurrentPage = 1;
+    renderRecordTable();
+  });
+
+  // 输入时清除错误状态
+  drawerNameInput.addEventListener('input', function() {
+    if (this.value.trim()) { this.classList.remove('error'); drawerNameError.classList.remove('show'); }
+  });
+  drawerAgeInput.addEventListener('input', function() {
+    var v = this.value.trim();
+    if (v && !isNaN(v) && parseInt(v) >= 1 && parseInt(v) <= 20) {
+      this.classList.remove('error');
+      drawerAgeError.classList.remove('show');
+    }
+  });
+  drawerGenderSelect.addEventListener('change', function() {
+    if (this.value) { this.classList.remove('error'); drawerGenderError.classList.remove('show'); }
+  });
+  drawerStudentNoInput.addEventListener('input', function() {
+    if (this.value.trim()) { this.classList.remove('error'); drawerStudentNoError.classList.remove('show'); }
+  });
+
+  /* ─── import page ──────────────────────────────────────────── */
+  var recordListCard = document.querySelector('.content .settings-card');
+  var importPage = document.getElementById('importPage');
+  var importBtnEl = document.getElementById('importBtn');
+  var stepItem1 = document.getElementById('stepItem1');
+  var stepItem2 = document.getElementById('stepItem2');
+  var stepDot1 = document.getElementById('stepDot1');
+  var stepDot2 = document.getElementById('stepDot2');
+  var stepLine1 = document.getElementById('stepLine1');
+  var step1Content = document.getElementById('step1Content');
+  var step2Content = document.getElementById('step2Content');
+  var uploadArea = document.getElementById('uploadArea');
+  var uploadContent = document.getElementById('uploadContent');
+  var uploadInput = document.getElementById('uploadInput');
+  var uploadFileInfo = document.getElementById('uploadFileInfo');
+  var uploadFileName = document.getElementById('uploadFileName');
+  var uploadFileSize = document.getElementById('uploadFileSize');
+  var step2Submit = document.getElementById('step2Submit');
+  var uploadedFile = null;
+
+  function showImportPage() {
+    document.querySelector('.content-title').style.display = 'none';
+    recordListCard.style.display = 'none';
+    importPage.classList.add('active');
+    resetImportPage();
+  }
+
+  function hideImportPage() {
+    importPage.classList.remove('active');
+    recordListCard.style.display = '';
+    document.querySelector('.content-title').style.display = '';
+    renderRecordTable();
+  }
+
+  function resetImportPage() {
+    currentStep = 1;
+    stepItem1.className = 'step-item active';
+    stepItem2.className = 'step-item';
+    stepDot1.className = 'step-dot active';
+    stepDot1.textContent = '1';
+    stepDot2.className = 'step-dot';
+    stepDot2.textContent = '2';
+    stepLine1.className = 'step-line';
+    step1Content.className = 'step-content active';
+    step2Content.className = 'step-content';
+    uploadedFile = null;
+    uploadFileInfo.classList.remove('show');
+    uploadContent.style.display = '';
+    uploadArea.classList.remove('uploaded');
+    step2Submit.disabled = true;
+    uploadInput.value = '';
+  }
+
+  var currentStep = 1;
+
+  function goToStep(step) {
+    currentStep = step;
+    if (step === 1) {
+      stepItem1.className = 'step-item active';
+      stepItem2.className = 'step-item';
+      stepDot1.className = 'step-dot active';
+      stepDot1.textContent = '1';
+      stepDot2.className = 'step-dot';
+      stepDot2.textContent = '2';
+      stepLine1.className = 'step-line';
+      step1Content.className = 'step-content active';
+      step2Content.className = 'step-content';
+    } else if (step === 2) {
+      stepItem1.className = 'step-item done';
+      stepItem2.className = 'step-item active';
+      stepDot1.className = 'step-dot done';
+      stepDot1.textContent = '✓';
+      stepDot2.className = 'step-dot active';
+      stepDot2.textContent = '2';
+      stepLine1.className = 'step-line done';
+      step1Content.className = 'step-content';
+      step2Content.className = 'step-content active';
+    }
+  }
+
+  importBtnEl.addEventListener('click', showImportPage);
+  document.getElementById('breadcrumbBack').addEventListener('click', hideImportPage);
+
+  // Step 1 buttons
+  document.getElementById('step1Cancel').addEventListener('click', hideImportPage);
+  document.getElementById('step1Next').addEventListener('click', function() { goToStep(2); });
+
+  // Step 2 buttons
+  document.getElementById('step2Prev').addEventListener('click', function() { goToStep(1); });
+
+  // Download template
+  document.getElementById('downloadTemplateBtn').addEventListener('click', function() {
+    var templateContent = '姓名,性别,年龄,所属年级,所属班级,学号\n张小明,男,8,一年级,1班,2026001\n李思涵,女,7,一年级,2班,2026002';
+    var blob = new Blob(['\ufeff' + templateContent], { type: 'text/csv;charset=utf-8;' });
+    var link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = '健康档案导入模版.csv';
+    link.click();
+    showMessage('template-download', 'success', '模版已下载', 3000);
+  });
+
+  // Upload area click
+  uploadArea.addEventListener('click', function() {
+    if (!uploadArea.classList.contains('uploaded')) uploadInput.click();
+  });
+
+  // Drag & drop
+  uploadArea.addEventListener('dragover', function(e) { e.preventDefault(); uploadArea.classList.add('dragover'); });
+  uploadArea.addEventListener('dragleave', function() { uploadArea.classList.remove('dragover'); });
+  uploadArea.addEventListener('drop', function(e) {
+    e.preventDefault();
+    uploadArea.classList.remove('dragover');
+    if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+  });
+
+  uploadInput.addEventListener('change', function() {
+    if (this.files.length) handleFile(this.files[0]);
+  });
+
+  function handleFile(file) {
+    uploadedFile = file;
+    uploadFileName.textContent = file.name;
+    uploadFileSize.textContent = '(' + (file.size < 1024 ? file.size + 'B' : (file.size / 1024).toFixed(1) + 'KB') + ')';
+    uploadContent.style.display = 'none';
+    uploadFileInfo.classList.add('show');
+    uploadArea.classList.add('uploaded');
+    step2Submit.disabled = false;
+  }
+
+  document.getElementById('uploadRemoveBtn').addEventListener('click', function(e) {
+    e.stopPropagation();
+    uploadedFile = null;
+    uploadFileInfo.classList.remove('show');
+    uploadContent.style.display = '';
+    uploadArea.classList.remove('uploaded');
+    step2Submit.disabled = true;
+    uploadInput.value = '';
+  });
+
+  // Submit import (simulated)
+  step2Submit.addEventListener('click', function() {
+    if (!uploadedFile) return;
+    step2Submit.disabled = true;
+
+    showMessage('import-loading', 'loading', '正在解析模版数据，请稍候');
+
+    setTimeout(function() {
+      // Simulate: 80% success, 20% failure
+      var isSuccess = Math.random() > 0.2;
+
+      hideMessage('import-loading').then(function() {
+        if (isSuccess) {
+          // Add 3 simulated records from "import"
+          for (var k = 0; k < 3; k++) {
+            var newId = 'HID' + String(10001 + recordData.length);
+            var impCls = classes[Math.floor(Math.random() * classes.length)];
+            var impGender = k % 2 === 0 ? '男' : '女';
+            var impName = surnames[(recordData.length + k) % surnames.length] + (impGender === '男' ? maleNames[(recordData.length + k) % maleNames.length] : femaleNames[(recordData.length + k) % femaleNames.length]);
+            var assessIdx = Math.floor(Math.random() * dateOptions.length);
+            var trainIdx = Math.floor(Math.random() * dateOptions.length);
+            if (trainIdx < assessIdx) trainIdx = assessIdx;
+            recordData.push({
+              name: impName,
+              studentNo: '2026' + String(recordData.length + 1).padStart(3, '0'),
+              gender: impGender,
+              class: impCls,
+              healthId: newId,
+              lastAssessTime: dateOptions[assessIdx],
+              lastTrainTime: dateOptions[trainIdx],
+              status: '在读'
+            });
+          }
+          showMessage('import-success', 'success', '解析成功，档案已生成', 3000);
+          hideImportPage();
+        } else {
+          var errorLine = Math.floor(Math.random() * 10) + 2;
+          showMessage('import-error', 'warning', '当前模版中第' + errorLine + '行数据格式错误', 5000);
+          step2Submit.disabled = false;
+        }
+      });
+    }, 1500);
+  });
+
+  /* ─── detail page ─────────────────────────────────────────── */
+  var detailPage = document.getElementById('detailPage');
+  var detailBreadcrumbBack = document.getElementById('detailBreadcrumbBack');
+  var detailBreadcrumbName = document.getElementById('detailBreadcrumbName');
+  var editInfoBtn = document.getElementById('editInfoBtn');
+  var cancelEditBtn = document.getElementById('cancelEditBtn');
+  var deleteInfoBtn = document.getElementById('deleteInfoBtn');
+  var deleteArchiveOverlay = document.getElementById('deleteArchiveOverlay');
+  var infoGrid = document.getElementById('infoGrid');
+  var detailRecordBody = document.getElementById('detailRecordBody');
+  var detailRecordCount = document.getElementById('detailRecordCount');
+  var detailRecordPagination = document.getElementById('detailRecordPagination');
+  var currentDetailIndex = -1;
+  var detailRecordPageNum = 1;
+  var detailRecordPageSize = 5;
+  var isEditingInfo = false;
+  var detailTypeFilterValue = ''; // 类型筛选值
+
+  // 填充班级下拉（初始全部选项，后续按年级筛选）
+  classes.forEach(function(cls) {
+    var opt = document.createElement('option');
+    opt.value = cls; opt.textContent = cls;
+    document.getElementById('infoClassEdit').appendChild(opt);
+  });
+
+  // 生成视力健康记录模拟数据
+  function generateVisionRecords(studentIndex) {
+    var records = [];
+    var baseVision = 3.5 + (studentIndex % 20) * 0.15;
+    var baseTrain = 15 + (studentIndex % 8) * 3;
+    var years = ['2026','2025','2024'];
+    // 24次视力评估（涵盖3年）
+    for (var j = 0; j < 24; j++) {
+      var year = years[Math.floor(j / 8)];
+      var month = 6 - Math.floor((j % 8) / 3);
+      var day = 28 - (j % 8) * 5;
+      if (day < 1) { month--; day += 30; }
+      if (month < 1) month = 1;
+      var hour = 8 + j % 3;
+      var formatType = Math.random() > 0.5 ? 'double' : 'single';
+      var visionVal = baseVision + (j % 5) * 0.3 + (Math.random() - 0.5) * 0.4;
+      visionVal = parseFloat(Math.min(5.2, Math.max(2.0, visionVal)).toFixed(1));
+      var leftVision = baseVision + (j % 5) * 0.3 + (Math.random() - 0.5) * 0.4;
+      leftVision = parseFloat(Math.min(5.2, Math.max(2.0, leftVision)).toFixed(1));
+      var rightVision = baseVision + (j % 5) * 0.3 + (Math.random() - 0.5) * 0.4;
+      rightVision = parseFloat(Math.min(5.2, Math.max(2.0, rightVision)).toFixed(1));
+      records.push({
+        type: '视力评估',
+        time: year + '-' + String(month).padStart(2,'0') + '-' + String(day).padStart(2, '0') + ' ' + String(hour).padStart(2, '0') + ':00',
+        visionFormat: formatType,
+        vision: visionVal,
+        leftVision: leftVision,
+        rightVision: rightVision,
+        duration: null
+      });
+    }
+    // 16次视力训练（涵盖3年）
+    for (var j = 0; j < 16; j++) {
+      var year = years[Math.floor(j / 6) < 3 ? Math.floor(j / 6) : 2];
+      var month = 6 - Math.floor((j % 6) / 2);
+      var day = 25 - (j % 6) * 4;
+      if (day < 1) { month--; day += 30; }
+      if (month < 1) month = 1;
+      var hour = 14 + j % 2;
+      var durVal = baseTrain + (j % 4) * 3;
+      durVal = Math.min(45, Math.max(15, durVal));
+      records.push({
+        type: '视力训练',
+        time: year + '-' + String(month).padStart(2,'0') + '-' + String(day).padStart(2, '0') + ' ' + String(hour).padStart(2, '0') + ':00',
+        vision: null,
+        duration: durVal
+      });
+    }
+    records.sort(function(a, b) { return b.time.localeCompare(a.time); });
+    return records;
+  }
+
+  function showDetailPage(idx) {
+    window._trendYearInited = false;
+    currentDetailIndex = idx;
+    var student = recordData[idx];
+    detailBreadcrumbName.textContent = student.name + ' - ' + student.healthId;
+
+    // 填充基本信息显示值
+    document.getElementById('infoNameVal').textContent = student.name;
+    document.getElementById('infoGenderVal').textContent = student.gender;
+    var classNumMatch = student.class.match(/(\d+班)$/);
+    document.getElementById('infoClassVal').textContent = classNumMatch ? classNumMatch[1] : student.class;
+    // Extract grade from class (e.g., "一年级1班" → "一年级")
+    var gradeMatch = student.class.match(/^(.+年级)(\d+班)$/);
+    document.getElementById('infoGradeVal').textContent = gradeMatch ? gradeMatch[1] : '';
+    document.getElementById('infoStudentNoVal').textContent = student.studentNo;
+    var statusClass = student.status === '在读' ? 'st-active' : student.status === '毕业' ? 'st-graduated' : 'st-transfer';
+    document.getElementById('infoStatusVal').innerHTML = '<span class="status-badge ' + statusClass + '">' + student.status + '</span>';
+    document.getElementById('infoCreateTimeVal').textContent = student.lastAssessTime;
+    document.getElementById('infoHealthIdVal').textContent = student.healthId;
+    document.getElementById('infoAgeVal').textContent = student.age;
+
+    // 填充编辑控件初始值
+    document.getElementById('infoNameEdit').value = student.name;
+    document.getElementById('infoGenderEdit').value = student.gender;
+    // Populate class dropdown filtered by grade, then set value
+    var gradeMatch = student.class.match(/^(.+年级)(\d+班)$/);
+    populateClassEditByGrade(gradeMatch ? gradeMatch[1] : '');
+    document.getElementById('infoClassEdit').value = student.class;
+    refreshCustomSelect(document.getElementById('infoClassEdit'));
+    document.getElementById('infoStudentNoEdit').value = student.studentNo;
+    document.getElementById('infoStatusEdit').value = student.status;
+    document.getElementById('infoAgeEdit').value = student.age;
+    // Populate grade edit dropdown and refresh custom selects
+    populateGradeEdit(student.class);
+    refreshCustomSelect(document.getElementById('infoGenderEdit'));
+    refreshCustomSelect(document.getElementById('infoClassEdit'));
+    refreshCustomSelect(document.getElementById('infoStatusEdit'));
+
+    // 退出编辑模式 + 重置所有状态
+    isEditingInfo = false;
+    infoGrid.classList.remove('editing');
+    editInfoBtn.textContent = '编辑';
+    editInfoBtn.className = 'btn-outline';
+    cancelEditBtn.style.display = 'none';
+    deleteInfoBtn.style.display = '';
+    clearInfoEditErrors();
+    detailTypeFilterValue = '';
+    detailTypeRadios.forEach(function(radio) { radio.checked = radio.value === ''; });
+
+    // 渲染视力健康记录
+    detailRecordPageNum = 1;
+    renderDetailRecords();
+
+    // 视图切换
+    document.querySelector('.content-title').style.display = 'none';
+    recordListCard.style.display = 'none';
+    importPage.classList.remove('active');
+    detailPage.classList.add('active');
+
+    // 绘制趋势图（延迟以确保canvas可见）
+    setTimeout(function() {
+      drawTrendChart();
+      // 初始化年份筛选，仅首次进入时执行
+      if (!window._trendYearInited) {
+        var records = generateVisionRecords(currentDetailIndex);
+        initTrendYearFilter(records);
+        window._trendYearInited = true;
+      }
+    }, 100);
+  }
+
+  function hideDetailPage() {
+    detailPage.classList.remove('active');
+    document.querySelector('.content-title').style.display = '';
+    recordListCard.style.display = '';
+    renderRecordTable();
+  }
+
+  detailBreadcrumbBack.addEventListener('click', hideDetailPage);
+
+  // 修改showImportPage，使其也隐藏detailPage
+  var _origShowImportPage = showImportPage;
+  showImportPage = function() {
+    detailPage.classList.remove('active');
+    _origShowImportPage();
+  };
+
+  // 编辑模式切换
+  editInfoBtn.addEventListener('click', function() {
+    if (!isEditingInfo) {
+      isEditingInfo = true;
+      infoGrid.classList.add('editing');
+      editInfoBtn.textContent = '保存';
+      editInfoBtn.className = 'btn-primary btn-save';
+      cancelEditBtn.style.display = '';
+      deleteInfoBtn.style.display = 'none';
+      // 填充编辑控件当前值
+      var student = recordData[currentDetailIndex];
+      document.getElementById('infoNameEdit').value = student.name;
+      document.getElementById('infoGenderEdit').value = student.gender;
+      // Populate class dropdown by current grade
+      var gradeMatch = student.class.match(/^(.+年级)(\d+班)$/);
+      populateClassEditByGrade(gradeMatch ? gradeMatch[1] : '');
+      document.getElementById('infoClassEdit').value = student.class;
+      refreshCustomSelect(document.getElementById('infoClassEdit'));
+      document.getElementById('infoStudentNoEdit').value = student.studentNo;
+      document.getElementById('infoStatusEdit').value = student.status;
+      document.getElementById('infoAgeEdit').value = student.age;
+      // Set grade edit value and refresh custom select triggers
+      var infoGradeEdit = document.getElementById('infoGradeEdit');
+      if (gradeMatch) infoGradeEdit.value = gradeMatch[1];
+      refreshCustomSelect(infoGradeEdit);
+      refreshCustomSelect(document.getElementById('infoGenderEdit'));
+      refreshCustomSelect(document.getElementById('infoClassEdit'));
+      refreshCustomSelect(document.getElementById('infoStatusEdit'));
+      clearInfoEditErrors();
+    } else {
+      // 保存验证
+      var valid = true;
+      var nameVal = document.getElementById('infoNameEdit').value.trim();
+      var genderVal = document.getElementById('infoGenderEdit').value;
+      var classVal = document.getElementById('infoClassEdit').value;
+      var gradeVal = document.getElementById('infoGradeEdit').value;
+      var studentNoVal = document.getElementById('infoStudentNoEdit').value.trim();
+      var ageVal = document.getElementById('infoAgeEdit').value.trim();
+      var statusVal = document.getElementById('infoStatusEdit').value;
+
+      if (!nameVal) {
+        document.getElementById('infoNameEdit').classList.add('error');
+        document.getElementById('infoNameEditError').classList.add('show');
+        valid = false;
+      }
+      if (!genderVal) {
+        document.getElementById('infoGenderEdit').classList.add('error');
+        document.getElementById('infoGenderEditError').classList.add('show');
+        valid = false;
+      }
+      if (!classVal) {
+        document.getElementById('infoClassEdit').classList.add('error');
+        document.getElementById('infoClassEditError').classList.add('show');
+        valid = false;
+      }
+      if (!gradeVal) {
+        document.getElementById('infoGradeEdit').classList.add('error');
+        document.getElementById('infoGradeEditError').classList.add('show');
+        valid = false;
+      }
+      if (!statusVal) {
+        document.getElementById('infoStatusEdit').classList.add('error');
+        document.getElementById('infoStatusEditError').classList.add('show');
+        valid = false;
+      }
+      if (!studentNoVal) {
+        document.getElementById('infoStudentNoEdit').classList.add('error');
+        document.getElementById('infoStudentNoEditError').classList.add('show');
+        valid = false;
+      }
+      if (!ageVal || isNaN(ageVal) || parseInt(ageVal) < 1 || parseInt(ageVal) > 20) {
+        document.getElementById('infoAgeEdit').classList.add('error');
+        document.getElementById('infoAgeEditError').classList.add('show');
+        valid = false;
+      }
+
+      if (!valid) return;
+
+      // 更新数据
+      var student = recordData[currentDetailIndex];
+      student.name = nameVal;
+      student.gender = genderVal;
+      // Reconstruct class from grade + class number (if grade changed)
+      var classNum = classVal.match(/(\d+班)$/);
+      student.class = classNum ? gradeVal + classNum[1] : classVal;
+      student.studentNo = studentNoVal;
+      student.age = parseInt(ageVal);
+      student.status = statusVal;
+
+      // 退出编辑模式
+      isEditingInfo = false;
+      infoGrid.classList.remove('editing');
+      editInfoBtn.textContent = '编辑';
+      editInfoBtn.className = 'btn-outline';
+      cancelEditBtn.style.display = 'none';
+      deleteInfoBtn.style.display = '';
+      clearInfoEditErrors();
+
+      // 更新显示值
+      document.getElementById('infoNameVal').textContent = student.name;
+      document.getElementById('infoGenderVal').textContent = student.gender;
+      var classNumMatch = student.class.match(/(\d+班)$/);
+    document.getElementById('infoClassVal').textContent = classNumMatch ? classNumMatch[1] : student.class;
+      var saveGradeMatch = student.class.match(/^(.+年级)(\d+班)$/);
+      document.getElementById('infoGradeVal').textContent = saveGradeMatch ? saveGradeMatch[1] : '';
+      document.getElementById('infoStudentNoVal').textContent = student.studentNo;
+      document.getElementById('infoAgeVal').textContent = student.age;
+      var statusClass = student.status === '在读' ? 'st-active' : student.status === '毕业' ? 'st-graduated' : 'st-transfer';
+      document.getElementById('infoStatusVal').innerHTML = '<span class="status-badge ' + statusClass + '">' + student.status + '</span>';
+      detailBreadcrumbName.textContent = student.name + ' - ' + student.healthId;
+
+      showMessage('save-info-success', 'success', '基本信息保存成功', 3000);
+    }
+  });
+
+  // 取消编辑按钮
+  cancelEditBtn.addEventListener('click', function() {
+    isEditingInfo = false;
+    infoGrid.classList.remove('editing');
+    editInfoBtn.textContent = '编辑';
+    editInfoBtn.className = 'btn-outline';
+    cancelEditBtn.style.display = 'none';
+    deleteInfoBtn.style.display = '';
+    clearInfoEditErrors();
+  });
+
+  // 删除档案按钮 → 打开确认对话框
+  deleteInfoBtn.addEventListener('click', function() {
+    deleteArchiveOverlay.classList.add('open');
+  });
+  document.getElementById('deleteArchiveCancel').addEventListener('click', function() {
+    deleteArchiveOverlay.classList.remove('open');
+  });
+  document.getElementById('deleteArchiveConfirm').addEventListener('click', function() {
+    deleteArchiveOverlay.classList.remove('open');
+    showMessage('delete-archive-success', 'success', '档案删除成功', 3000);
+    setTimeout(function() { hideDetailPage(); }, 1000);
+  });
+
+  function clearInfoEditErrors() {
+    document.getElementById('infoNameEdit').classList.remove('error');
+    document.getElementById('infoNameEditError').classList.remove('show');
+    document.getElementById('infoGenderEdit').classList.remove('error');
+    document.getElementById('infoGenderEditError').classList.remove('show');
+    document.getElementById('infoClassEdit').classList.remove('error');
+    document.getElementById('infoClassEditError').classList.remove('show');
+    document.getElementById('infoGradeEdit').classList.remove('error');
+    document.getElementById('infoGradeEditError').classList.remove('show');
+    document.getElementById('infoStatusEdit').classList.remove('error');
+    document.getElementById('infoStatusEditError').classList.remove('show');
+    document.getElementById('infoStudentNoEdit').classList.remove('error');
+    document.getElementById('infoStudentNoEditError').classList.remove('show');
+    document.getElementById('infoAgeEdit').classList.remove('error');
+    document.getElementById('infoAgeEditError').classList.remove('show');
+  }
+
+  // 输入时清除错误状态
+  document.getElementById('infoNameEdit').addEventListener('input', function() {
+    if (this.value.trim()) { this.classList.remove('error'); document.getElementById('infoNameEditError').classList.remove('show'); }
+  });
+  document.getElementById('infoStudentNoEdit').addEventListener('input', function() {
+    if (this.value.trim()) { this.classList.remove('error'); document.getElementById('infoStudentNoEditError').classList.remove('show'); }
+  });
+  document.getElementById('infoAgeEdit').addEventListener('input', function() {
+    if (this.value.trim() && !isNaN(this.value) && parseInt(this.value) >= 1 && parseInt(this.value) <= 20) {
+      this.classList.remove('error');
+      document.getElementById('infoAgeEditError').classList.remove('show');
+    }
+  });
+  document.getElementById('infoGenderEdit').addEventListener('change', function() {
+    if (this.value) { this.classList.remove('error'); document.getElementById('infoGenderEditError').classList.remove('show'); }
+  });
+  document.getElementById('infoClassEdit').addEventListener('change', function() {
+    if (this.value) { this.classList.remove('error'); document.getElementById('infoClassEditError').classList.remove('show'); }
+    // Sync grade when class changes
+    var m = this.value.match(/^(.+年级)(\d+班)$/);
+    var infoGradeEdit = document.getElementById('infoGradeEdit');
+    if (m) {
+      infoGradeEdit.value = m[1];
+      refreshCustomSelect(infoGradeEdit);
+    }
+  });
+  document.getElementById('infoGradeEdit').addEventListener('change', function() {
+    if (this.value) { this.classList.remove('error'); document.getElementById('infoGradeEditError').classList.remove('show'); }
+    // Filter class dropdown when grade changes, reset class selection
+    var classEdit = document.getElementById('infoClassEdit');
+    populateClassEditByGrade(this.value);
+    classEdit.selectedIndex = -1;
+    refreshCustomSelect(classEdit);
+  });
+  document.getElementById('infoStatusEdit').addEventListener('change', function() {
+    if (this.value) { this.classList.remove('error'); document.getElementById('infoStatusEditError').classList.remove('show'); }
+  });
+
+  // Populate grade edit dropdown from gradeList
+  function populateGradeEdit(currentClass) {
+    var gradeEdit = document.getElementById('infoGradeEdit');
+    gradeEdit.innerHTML = '';
+    gradeList.forEach(function(g) {
+      var opt = document.createElement('option');
+      opt.value = g; opt.textContent = g;
+      gradeEdit.appendChild(opt);
+    });
+    var m = currentClass.match(/^(.+年级)(\d+班)$/);
+    if (m) gradeEdit.value = m[1];
+    refreshCustomSelect(gradeEdit);
+  }
+
+  // Populate class edit dropdown filtered by grade, show only class number
+  function populateClassEditByGrade(grade) {
+    var classEdit = document.getElementById('infoClassEdit');
+    classEdit.innerHTML = '';
+    if (grade && gradeClassMap[grade]) {
+      gradeClassMap[grade].forEach(function(clsNum) {
+        var opt = document.createElement('option');
+        opt.value = grade + clsNum;
+        opt.textContent = clsNum;
+        classEdit.appendChild(opt);
+      });
+    }
+  }
+
+  // 渲染视力健康记录表
+  function renderDetailRecords() {
+    var records = generateVisionRecords(currentDetailIndex);
+    // 类型筛选
+    if (detailTypeFilterValue) {
+      records = records.filter(function(r) { return r.type === detailTypeFilterValue; });
+    }
+    var total = records.length;
+    var totalPages = Math.max(1, Math.ceil(total / detailRecordPageSize));
+    if (detailRecordPageNum > totalPages) detailRecordPageNum = totalPages;
+
+    var start = (detailRecordPageNum - 1) * detailRecordPageSize;
+    var pageData = records.slice(start, start + detailRecordPageSize);
+
+    detailRecordBody.innerHTML = '';
+    pageData.forEach(function(r) {
+      var tr = document.createElement('tr');
+      var typeLabel = r.type;
+      var valueStr = '';
+      if (r.type === '视力评估') {
+        var isLow = r.vision < 4.0 || r.leftVision < 4.0 || r.rightVision < 4.0;
+        var isHigh = r.vision >= 5.0 && r.leftVision >= 5.0 && r.rightVision >= 5.0;
+        var colorClass = isLow ? 'vision-warning' : isHigh ? 'vision-safe' : '';
+        var wrapOpen = colorClass ? '<span class="' + colorClass + '">' : '';
+        var wrapClose = colorClass ? '</span>' : '';
+        if (r.visionFormat === 'single') {
+          valueStr = wrapOpen + '左眼 - ' + r.leftVision.toFixed(1) + ' | 右眼 - ' + r.rightVision.toFixed(1) + wrapClose;
+        } else {
+          valueStr = wrapOpen + '双眼 - ' + r.vision.toFixed(1) + wrapClose;
+        }
+      } else {
+        valueStr = r.duration + '分钟';
+      }
+      tr.innerHTML = '<td>' + typeLabel + '</td><td>' + r.time + '</td><td>' + valueStr + '</td>';
+      detailRecordBody.appendChild(tr);
+    });
+
+    detailRecordCount.textContent = '共 ' + total + ' 条';
+
+    // 分页
+    detailRecordPagination.innerHTML = '';
+    if (totalPages > 1) {
+      var prevBtn = document.createElement('button');
+      prevBtn.className = 'member-page-btn';
+      prevBtn.textContent = '‹';
+      prevBtn.disabled = detailRecordPageNum === 1;
+      prevBtn.addEventListener('click', function() { detailRecordPageNum--; renderDetailRecords(); });
+      detailRecordPagination.appendChild(prevBtn);
+
+      for (var p = 1; p <= totalPages; p++) {
+        var btn = document.createElement('button');
+        btn.className = 'member-page-btn' + (p === detailRecordPageNum ? ' active' : '');
+        btn.textContent = p;
+        btn.addEventListener('click', function(pg) { return function() { detailRecordPageNum = pg; renderDetailRecords(); }; }(p));
+        detailRecordPagination.appendChild(btn);
+      }
+
+      var nextBtn = document.createElement('button');
+      nextBtn.className = 'member-page-btn';
+      nextBtn.textContent = '›';
+      nextBtn.disabled = detailRecordPageNum === totalPages;
+      nextBtn.addEventListener('click', function() { detailRecordPageNum++; renderDetailRecords(); });
+      detailRecordPagination.appendChild(nextBtn);
+    }
+  }
+
+  // 类型筛选交互
+  var detailTypeFilterIcon = document.getElementById('detailTypeFilterIcon');
+  var detailTypeDropdown = document.getElementById('detailTypeDropdown');
+
+  detailTypeFilterIcon.addEventListener('click', function(e) {
+    e.stopPropagation();
+    detailTypeDropdown.classList.toggle('open');
+  });
+
+  document.addEventListener('click', function() {
+    detailTypeDropdown.classList.remove('open');
+  });
+
+  detailTypeDropdown.addEventListener('click', function(e) {
+    e.stopPropagation();
+  });
+
+  var detailTypeRadios = detailTypeDropdown.querySelectorAll('input[name="detailTypeFilter"]');
+  detailTypeRadios.forEach(function(radio) {
+    radio.addEventListener('change', function() {
+      detailTypeFilterValue = this.value;
+      detailRecordPageNum = 1;
+      detailTypeDropdown.classList.remove('open');
+      renderDetailRecords();
+    });
+  });
+
+  // 绘制双轴折线趋势图（Chart.js）
+  function drawTrendChart() {
+    if (window._trendChartInstance) { window._trendChartInstance.destroy(); }
+
+    var records = generateVisionRecords(currentDetailIndex);
+
+    // 年份筛选
+    if (window._selectedTrendYear) {
+      records = records.filter(function(r) {
+        return r.time.substring(0, 4) === window._selectedTrendYear;
+      });
+    }
+
+    // 分离评估和训练记录
+    var assessRecords = records.filter(function(r){return r.type==='视力评估';}).sort(function(a,b){return a.time.localeCompare(b.time);}).slice(-10);
+    var trainRecords = records.filter(function(r){return r.type==='视力训练';}).sort(function(a,b){return a.time.localeCompare(b.time);}).slice(-10);
+
+    // 合并时间轴
+    var timeSet={};
+    assessRecords.forEach(function(r){timeSet[r.time.substring(0,10)]=true;});
+    trainRecords.forEach(function(r){timeSet[r.time.substring(0,10)]=true;});
+    var labels=Object.keys(timeSet).sort();
+
+    // 映射数据
+    var assessData=labels.map(function(d){
+      var found=assessRecords.filter(function(r){return r.time.substring(0,10)===d;});
+      return found.length?found[found.length-1].vision:null;
+    });
+    var trainData=labels.map(function(d){
+      var found=trainRecords.filter(function(r){return r.time.substring(0,10)===d;});
+      return found.length?found[found.length-1].duration:null;
+    });
+
+    // 视力点颜色：<4.0 红色，>=5.0 绿色，中间绿色
+    var assessPointColors=assessData.map(function(v){
+      if(v===null)return 'rgba(0,0,0,0)';
+      return v<4.0?'#d45656':'#0fa76e';
+    });
+
+    var ctx=document.getElementById('trendChart').getContext('2d');
+    // 自定义插件：悬浮竖线
+    if(!window._vlineRegistered){
+      Chart.register({
+        id:'vline',
+        afterDraw:function(chart){
+          if(chart.tooltip._active&&chart.tooltip._active.length){
+            var x=chart.tooltip._active[0].element.x;
+            var ctx=chart.ctx;
+            ctx.save();
+            ctx.beginPath();
+            ctx.setLineDash([4,4]);
+            ctx.strokeStyle='rgba(0,0,0,0.15)';
+            ctx.lineWidth=1;
+            ctx.moveTo(x,chart.chartArea.top);
+            ctx.lineTo(x,chart.chartArea.bottom);
+            ctx.stroke();
+            ctx.restore();
+          }
+        }
+      });
+      window._vlineRegistered=true;
+    }
+    window._trendChartInstance=new Chart(ctx,{
+      type:'line',
+      data:{
+        labels:labels,
+        datasets:[{
+          label:'视力曲线',
+          data:assessData,
+          borderColor:'#0fa76e',
+          borderWidth:1,
+          backgroundColor:'rgba(15,167,110,0.08)',
+          pointBackgroundColor:assessPointColors,
+          pointBorderColor:assessPointColors,
+          pointRadius:4,
+          pointHoverRadius:6,
+          tension:0,
+          fill:false,
+          spanGaps:true,
+          yAxisID:'y'
+        },{
+          label:'训练时长',
+          data:trainData,
+          borderColor:'#8b5cf6',
+          borderWidth:1,
+          backgroundColor:'rgba(139,92,246,0.08)',
+          pointBackgroundColor:'#8b5cf6',
+          pointBorderColor:'#8b5cf6',
+          pointRadius:4,
+          pointHoverRadius:6,
+          tension:0,
+          fill:false,
+          spanGaps:true,
+          yAxisID:'y1'
+        }]
+      },
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        interaction:{intersect:false,mode:'index'},
+        plugins:{
+          legend:{display:false},
+          tooltip:{
+            displayColors:false,
+            backgroundColor:'rgba(0,0,0,0.85)',
+            titleFont:{size:12,family:'"Inter",sans-serif'},
+            bodyFont:{size:12,family:'"Inter",sans-serif'},
+            padding:10,
+            cornerRadius:8,
+            callbacks:{
+              title:function(items){
+                return '评估时间：'+items[0].label;
+              },
+              label:function(context){
+                return context.dataset.label==='视力曲线'?'视力: '+context.parsed.y.toFixed(1):'训练时长: '+context.parsed.y+'分钟';
+              }
+            }
+          }
+        },
+        scales:{
+          x:{
+            grid:{display:false},
+            ticks:{
+              font:{size:10},
+              color:'#767676',
+              maxRotation:0,
+              callback:function(val,idx){return labels[idx]?labels[idx].substring(5):'';}
+            }
+          },
+          y:{
+            position:'left',
+            min:1.0,max:6.0,
+            afterBuildTicks:function(a){a.ticks=a.ticks.filter(function(t){return t.value<6.0;});},
+            grid:{color:'rgba(0,0,0,0.06)'},
+            ticks:{font:{size:11},color:'#0fa76e',stepSize:1},
+            title:{display:false}
+          },
+          y1:{
+            position:'right',
+            min:0,max:60,
+            grid:{display:false},
+            ticks:{font:{size:11},color:'#8b5cf6',callback:function(val){return val+'分钟';}},
+            title:{display:false}
+          }
+        }
+      }
+    });
+  }
+
+  /* ─── 视力趋势年份筛选 ─────────────────────────────── */
+  var trendYearItems = [];
+
+  function initTrendYearFilter(records) {
+    var yearsSet = {};
+    records.forEach(function(r) {
+      var y = r.time.substring(0, 4);
+      yearsSet[y] = true;
+    });
+    var yearKeys = Object.keys(yearsSet).sort().reverse();
+
+    var trigger = document.getElementById('trendYearTrigger');
+    var dropdown = document.getElementById('trendYearDropdown');
+    var optionsEl = document.getElementById('trendYearOptions');
+    var labelEl = document.getElementById('trendYearLabel');
+
+    if (!trigger) return;
+
+    var defaultYear = yearKeys[0] || '2026';
+    trendYearItems = [];
+    yearKeys.forEach(function(y) {
+      trendYearItems.push({ key: y, label: y + '年', selected: y === defaultYear });
+    });
+    window._selectedTrendYear = defaultYear;
+    labelEl.textContent = defaultYear + '年';
+
+    function renderOpts() {
+      optionsEl.innerHTML = '';
+      trendYearItems.forEach(function(item) {
+        var div = document.createElement('div');
+        div.className = 'ms-option' + (item.selected ? ' selected' : '');
+        div.dataset.key = item.key;
+        div.textContent = item.label;
+        optionsEl.appendChild(div);
+        div.addEventListener('click', function() {
+          if (item.selected) { dropdown.classList.remove('open'); trigger.classList.remove('open'); return; }
+          trendYearItems.forEach(function(yi) { yi.selected = false; });
+          item.selected = true;
+          window._selectedTrendYear = item.key;
+          labelEl.textContent = item.label;
+          renderOpts();
+          drawTrendChart();
+          dropdown.classList.remove('open');
+          trigger.classList.remove('open');
+        });
+      });
+    }
+
+    trigger.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var isOpen = dropdown.classList.contains('open');
+      document.querySelectorAll('.ms-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
+      document.querySelectorAll('.ms-trigger.open').forEach(function(t) { t.classList.remove('open'); });
+      if (!isOpen) { dropdown.classList.add('open'); trigger.classList.add('open'); renderOpts(); }
+    });
+
+    document.addEventListener('click', function() {
+      dropdown.classList.remove('open');
+      trigger.classList.remove('open');
+    });
+
+    renderOpts();
+  }
+  recordTableBody.addEventListener('click', function(e) {
+    var btn = e.target.closest('.member-action');
+    if (!btn) return;
+    var healthId = btn.getAttribute('data-detail-idx');
+    var filtered = getFilteredRecords();
+    var start = (recordCurrentPage - 1) * recordPageSize;
+    var rows = recordTableBody.querySelectorAll('tr');
+    for (var ri = 0; ri < rows.length; ri++) {
+      if (rows[ri] === btn.closest('tr')) {
+        var dataIndex = start + ri;
+        if (dataIndex < filtered.length) {
+          var origIdx = recordData.indexOf(filtered[dataIndex]);
+          showDetailPage(origIdx);
+        }
+        break;
+      }
+    }
+  });
+
+  /* ─── custom dropdown: 原生 select 转为自定义下拉 ────────────── */
+  function refreshCustomSelect(selectEl) {
+    var wrap = selectEl.nextElementSibling;
+    if (!wrap || !wrap.classList.contains('custom-select-wrap')) return;
+    var trigger = wrap.querySelector('.custom-select-trigger');
+    var triggerText = trigger ? trigger.querySelector('span') : null;
+    var menu = wrap.querySelector('.custom-select-menu');
+    if (!trigger || !triggerText || !menu) return;
+    var sizeClass = '';
+    if (trigger.classList.contains('custom-select-trigger') && trigger.classList.contains('xs')) sizeClass = ' xs';
+    else if (trigger.classList.contains('custom-select-trigger') && trigger.classList.contains('sm')) sizeClass = ' sm';
+    menu.innerHTML = '';
+    for (var oi = 0; oi < selectEl.options.length; oi++) {
+      var opt = selectEl.options[oi];
+      (function(option) {
+        var item = document.createElement('div');
+        item.className = 'custom-select-item' + sizeClass;
+        item.textContent = option.text;
+        item.dataset.value = option.value;
+        if (option.selected) item.classList.add('selected');
+        item.addEventListener('click', function(e) {
+          e.stopPropagation();
+          selectEl.value = this.dataset.value;
+          triggerText.textContent = (this.dataset.value === '' && selectEl.dataset.triggerText) ? selectEl.dataset.triggerText : this.textContent;
+          triggerText.className = (this.dataset.value === '' && selectEl.dataset.triggerText) ? 'cs-placeholder' : '';
+          menu.classList.remove('open');
+          trigger.classList.remove('open');
+          menu.querySelectorAll('.custom-select-item').forEach(function(i) { i.classList.remove('selected'); });
+          this.classList.add('selected');
+          selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+        menu.appendChild(item);
+      })(opt);
+    }
+    var selectedOpt = selectEl.options[selectEl.selectedIndex];
+    if (selectedOpt && selectedOpt.textContent.trim()) {
+      triggerText.textContent = (!selectedOpt.value && selectEl.dataset.triggerText) ? selectEl.dataset.triggerText : selectedOpt.text;
+      triggerText.className = (!selectedOpt.value && selectEl.dataset.triggerText) ? 'cs-placeholder' : '';
+    } else {
+      triggerText.textContent = selectEl.dataset.triggerText || '请选择';
+      triggerText.className = selectEl.dataset.triggerText ? 'cs-placeholder' : 'cs-placeholder';
+    }
+  }
+
+  function convertSelectToCustom(selectEl) {
+    if (selectEl.dataset.csDone === 'true') return;
+    selectEl.dataset.csDone = 'true';
+
+    var sizeClass = '';
+    var isUp = false;
+    if (selectEl.classList.contains('page-size-select')) {
+      sizeClass = ' xs up';
+      isUp = true;
+    } else if (selectEl.classList.contains('info-edit-select')) {
+      sizeClass = ' sm';
+    }
+    selectEl.style.display = 'none';
+
+    var wrap = document.createElement('div');
+    wrap.className = 'custom-select-wrap';
+
+    var trigger = document.createElement('div');
+    trigger.className = 'custom-select-trigger' + sizeClass;
+
+    var selectedOpt = selectEl.options[selectEl.selectedIndex];
+    var triggerText = document.createElement('span');
+    if (selectedOpt && selectedOpt.textContent.trim()) {
+      triggerText.textContent = (!selectedOpt.value && selectEl.dataset.triggerText) ? selectEl.dataset.triggerText : selectedOpt.text;
+      triggerText.className = (!selectedOpt.value && selectEl.dataset.triggerText) ? 'cs-placeholder' : '';
+    } else {
+      triggerText.textContent = selectEl.dataset.triggerText || '请选择';
+      triggerText.className = 'cs-placeholder';
+    }
+    trigger.appendChild(triggerText);
+
+    var arrowSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    arrowSvg.setAttribute('viewBox', '0 0 24 24');
+    arrowSvg.setAttribute('fill', 'none');
+    arrowSvg.setAttribute('stroke', 'currentColor');
+    arrowSvg.setAttribute('stroke-width', '1.6');
+    arrowSvg.setAttribute('stroke-linecap', 'round');
+    arrowSvg.setAttribute('stroke-linejoin', 'round');
+    var polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+    polyline.setAttribute('points', '6 9 12 15 18 9');
+    arrowSvg.appendChild(polyline);
+    trigger.appendChild(arrowSvg);
+
+    var menu = document.createElement('div');
+    menu.className = 'custom-select-menu' + (isUp ? ' up' : '');
+
+    for (var oi = 0; oi < selectEl.options.length; oi++) {
+      var opt = selectEl.options[oi];
+      (function(option) {
+        var item = document.createElement('div');
+        item.className = 'custom-select-item' + sizeClass;
+        item.textContent = option.text;
+        item.dataset.value = option.value;
+        if (option.selected) item.classList.add('selected');
+        item.addEventListener('click', function(e) {
+          e.stopPropagation();
+          selectEl.value = this.dataset.value;
+          triggerText.textContent = (this.dataset.value === '' && selectEl.dataset.triggerText) ? selectEl.dataset.triggerText : this.textContent;
+          triggerText.className = (this.dataset.value === '' && selectEl.dataset.triggerText) ? 'cs-placeholder' : '';
+          menu.classList.remove('open');
+          trigger.classList.remove('open');
+          menu.querySelectorAll('.custom-select-item').forEach(function(i) { i.classList.remove('selected'); });
+          this.classList.add('selected');
+          selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+        menu.appendChild(item);
+      })(opt);
+    }
+
+    trigger.addEventListener('click', function(e) {
+      e.stopPropagation();
+      menu.classList.toggle('open');
+      trigger.classList.toggle('open');
+    });
+
+    document.addEventListener('click', function(e) {
+      if (!wrap.contains(e.target)) {
+        menu.classList.remove('open');
+        trigger.classList.remove('open');
+      }
+    });
+
+    wrap.appendChild(trigger);
+    wrap.appendChild(menu);
+    selectEl.parentNode.insertBefore(wrap, selectEl.nextSibling);
+  }
+
+  // 转换所有原生 select 为自定义下拉
+  (function initCustomSelects() {
+    var selects = document.querySelectorAll('select.form-select, select.info-edit-select, select.drawer-form-select, select.page-size-select');
+    for (var si = 0; si < selects.length; si++) {
+      convertSelectToCustom(selects[si]);
+    }
+  })();
+</script>
+</body></html>

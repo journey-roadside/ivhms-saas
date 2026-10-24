@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "视力健康管理平台 · 登录",
+  "entry": "login.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "primary": true,
+  "createdAt": "2026-07-02T02:25:00.896Z",
+  "updatedAt": "2026-07-02T12:45:47.244Z",
+  "sourceSkillId": "agent-browser",
+  "designSystemId": "mintlify",
+  "metadata": {
+    "identifier": "vision-health-login",
+    "artifactType": "text/html",
+    "inferred": false
+  }
+}

@@ -1,0 +1,925 @@
+<!doctype html>
+<html lang="zh-CN"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>视力健康管理平台 · 设备状态</title>
+<style>
+  :root {
+    --bg:          #f7f7f7;
+    --surface:     #ffffff;
+    --fg:          #0a0a0a;
+    --muted:       #5a5a5c;
+    --muted-light: #888888;
+    --border:      #e5e5e5;
+    --border-md:   #ededed;
+    --accent:      #00d4a4;
+    --accent-deep: #0d0d0d;
+    --accent-light:#7cebcb;
+    --error:       #d45656;
+    --error-light: #fde8e8;
+    --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --font-body:    'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+    --radius-xs: 4px; --radius-sm: 6px; --radius-md: 8px; --radius-lg: 12px; --radius-xl: 16px; --radius-xxl: 24px; --radius-pill: 9999px;
+    --shadow-card: rgba(0,0,0,0.03) 0 2px 4px; --shadow-btn: rgba(0,0,0,0.06) 0 1px 2px;
+    --sidebar-w: 240px;
+    --header-h: 56px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;scrollbar-width:none;-ms-overflow-style:none}
+  html::-webkit-scrollbar{display:none}
+  body{font-family:var(--font-body);color:var(--fg);background:var(--bg);min-height:100vh;display:flex;line-height:1.5}
+
+  /* ─── sidebar ────────────────────────────────────────────── */
+  .sidebar{width:var(--sidebar-w);background:var(--fg);color:#fff;display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;transition:transform .3s}
+  .sidebar-logo{padding:16px 20px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,0.08)}
+  .sidebar-logo-icon{width:32px;height:32px;border-radius:var(--radius-md);background:var(--accent);display:flex;align-items:center;justify-content:center}
+  .sidebar-logo-icon svg{width:16px;height:16px;color:var(--fg)}
+  .sidebar-logo-text{font-family:var(--font-display);font-size:15px;font-weight:600;letter-spacing:-0.01em}
+  .sidebar-nav{padding:8px 0;flex:1}
+  .sidebar-item{display:flex;align-items:center;gap:12px;padding:10px 20px;font-size:14px;color:rgba(255,255,255,0.6);cursor:pointer;transition:color .15s,background .15s;border-radius:0;position:relative;text-decoration:none}
+  .sidebar-item:hover{color:rgba(255,255,255,0.9);background:rgba(255,255,255,0.04)}
+  .sidebar-item.active{color:#fff;background:rgba(0,212,164,0.12)}
+  .sidebar-item.active::before{content:'';position:absolute;left:0;top:4px;bottom:4px;width:3px;background:var(--accent);border-radius:0 2px 2px 0}
+  .sidebar-item svg{width:18px;height:18px;flex-shrink:0}
+  .sidebar-bottom{padding:16px 20px;border-top:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between}
+  .sidebar-user{display:flex;align-items:center;gap:10px;cursor:pointer;transition:opacity .15s}
+  .sidebar-user:hover{opacity:.9}
+  .sidebar-avatar{width:28px;height:28px;border-radius:var(--radius-pill);background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--fg)}
+  .sidebar-username{font-size:13px;color:#fff;font-weight:500}
+  .sidebar-bottom-actions{display:flex;align-items:center;gap:8px}
+  .sidebar-bottom-btn{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:var(--radius-md);cursor:pointer;color:rgba(255,255,255,0.6);transition:background .15s,color .15s;position:relative}
+  .sidebar-bottom-btn:hover{background:rgba(255,255,255,0.08);color:#fff}
+  .sidebar-bottom-btn svg{width:18px;height:18px}
+  .sidebar-msg-badge{position:absolute;top:-2px;right:-4px;background:var(--accent);color:var(--fg);font-size:10px;font-weight:700;padding:1px 5px;border-radius:var(--radius-pill);min-width:16px;text-align:center;line-height:1.4}
+
+  /* ─── main layout ────────────────────────────────────────── */
+  .main-wrap{flex:1;min-width:0;margin-left:var(--sidebar-w);display:flex;flex-direction:column;min-height:100vh}
+  .content{flex:1;padding:24px 32px}
+  .content-title{font-family:var(--font-display);font-size:22px;font-weight:600;letter-spacing:-0.3px;margin-bottom:24px;color:var(--fg)}
+  .content-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+  .content-header .content-title{margin-bottom:0}
+  .seg-btn{padding:7px 18px;font-size:16px;font-weight:500;border-radius:6px;cursor:pointer;font-family:var(--font-body);background:transparent;color:var(--muted);border:none;transition:all .15s}
+  .seg-btn.active{background:#0a0a0a;color:#fff}
+  .seg-btn:hover:not(.active){color:var(--fg)}
+  .sync-time{font-size:13px;color:var(--muted-light);white-space:nowrap}
+
+  /* ─── sidebar floating panels ─────────────────────────────── */
+  .sidebar-user-dropdown{position:fixed;left:20px;width:var(--sidebar-w);bottom:60px;z-index:200;display:none;opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;background:var(--fg);border:1px solid rgba(255,255,255,0.12);border-radius:var(--radius-lg);box-shadow:0 8px 32px rgba(0,0,0,0.5),0 2px 8px rgba(0,0,0,0.3)}
+  .sidebar-user-dropdown.open{display:block;opacity:1;transform:translateY(0)}
+  .sidebar-msg-panel{position:fixed;left:20px;width:360px;max-width:calc(100vw - 32px);bottom:60px;z-index:200;display:none;opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;background:var(--fg);border:1px solid rgba(255,255,255,0.12);border-radius:var(--radius-lg);box-shadow:0 8px 32px rgba(0,0,0,0.5),0 2px 8px rgba(0,0,0,0.3)}
+  .sidebar-msg-panel.open{display:block;opacity:1;transform:translateY(0)}
+  .sidebar-user-dropdown .user-menu-item{color:#fff;display:flex;align-items:center;gap:10px;padding:10px 16px;font-size:13px;cursor:pointer;transition:background .15s;text-decoration:none}
+  .sidebar-user-dropdown .user-menu-item:hover{background:rgba(255,255,255,0.08)}
+  .sidebar-user-dropdown .user-menu-item svg{width:16px;height:16px;color:rgba(255,255,255,0.55);flex-shrink:0}
+  .sidebar-user-dropdown .user-menu-item.danger{color:#ef4444}
+  .sidebar-user-dropdown .user-menu-item.danger svg{color:#ef4444}
+  .sidebar-user-dropdown .user-menu-divider{height:1px;background:rgba(255,255,255,0.08);margin:4px 12px}
+  .msg-empty{text-align:center;padding:32px 16px;display:flex;flex-direction:column;align-items:center;gap:8px}
+  .msg-empty-icon{color:rgba(255,255,255,0.3)}
+  .msg-empty-icon svg{width:36px;height:36px}
+  .msg-empty-text{font-size:13px;color:rgba(255,255,255,0.5)}
+  .msg-header{display:flex;align-items:center;justify-content:space-between;padding:16px;border-bottom:1px solid rgba(255,255,255,0.08)}
+  .msg-header-title{font-family:var(--font-display);font-size:14px;font-weight:600;color:#fff}
+  .msg-clear-btn{font-size:12px;color:var(--accent);cursor:pointer;font-weight:500;border:none;background:none;font-family:var(--font-body)}
+  .msg-clear-btn:hover{color:#fff}
+  .msg-list{max-height:320px;overflow-y:auto}
+  .msg-list::-webkit-scrollbar{width:4px}
+  .msg-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.15);border-radius:4px}
+  .msg-item{padding:12px 10px;border-bottom:1px solid rgba(255,255,255,0.06);cursor:pointer;transition:background .15s}
+  .msg-item:hover{background:rgba(255,255,255,0.06)}
+  .msg-item:last-child{border-bottom:none}
+  .msg-item-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+  .msg-item-title{font-size:13px;font-weight:500;color:#fff;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .msg-item-time{font-size:11px;color:rgba(255,255,255,0.4)}
+  .msg-item-type{font-size:12px;color:rgba(255,255,255,0.55)}
+  .msg-footer{padding:12px 16px;border-top:1px solid rgba(255,255,255,0.08);text-align:center;font-size:13px;color:var(--accent);cursor:pointer;font-weight:500}
+  .msg-footer:hover{color:#fff}
+
+  /* ─── confirm dialog ──────────────────────────────────────── */
+  .confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:999;display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;transition:opacity .2s,visibility .2s}
+  .confirm-overlay.open{opacity:1;visibility:visible}
+  .confirm-box{background:var(--surface);border-radius:var(--radius-lg);padding:24px;width:360px;max-width:90vw;box-shadow:rgba(0,0,0,0.12) 0 16px 48px}
+  .confirm-title{font-family:var(--font-display);font-size:16px;font-weight:600;margin-bottom:8px}
+  .confirm-msg{font-size:14px;color:var(--muted);margin-bottom:40px;line-height:1.6}
+  .confirm-actions{display:flex;gap:12px;justify-content:flex-end}
+  .confirm-btn{padding:8px 20px;font-size:14px;font-weight:500;border-radius:var(--radius-pill);cursor:pointer;font-family:var(--font-body);transition:background .2s}
+  .confirm-btn-cancel{background:var(--bg);color:var(--fg);border:1px solid var(--border-md)}
+  .confirm-btn-cancel:hover{background:rgba(0,0,0,0.06)}
+  .confirm-btn-danger{background:#ef4444;color:#fff;border:none}
+  .confirm-btn-danger:hover{background:#dc2626}
+
+  .btn-primary{padding:10px 20px;font-size:14px;font-weight:500;border-radius:var(--radius-pill);cursor:pointer;font-family:var(--font-body);background:var(--fg);color:#fff;border:none;transition:opacity .15s}
+  .btn-primary:hover{opacity:.9}
+  .btn-accent-green{padding:10px 20px;font-size:14px;font-weight:500;border-radius:var(--radius-pill);cursor:pointer;font-family:var(--font-body);background:var(--accent);color:var(--fg);border:none;transition:opacity .15s}
+  .btn-accent-green:hover{opacity:.9}
+  .btn-on-dark{padding:10px 20px;font-size:14px;font-weight:500;border-radius:var(--radius-pill);cursor:pointer;font-family:var(--font-body);background:#fff;color:var(--fg);border:none;transition:opacity .15s}
+  .btn-on-dark:hover{opacity:.9}
+  .btn-ghost{padding:8px 12px;font-size:14px;font-weight:500;border-radius:var(--radius-md);cursor:pointer;font-family:var(--font-body);background:transparent;color:var(--fg);border:none;transition:opacity .15s}
+  .btn-ghost:hover{opacity:.8}
+
+  /* ─── responsive ─────────────────────────────────────────── */
+  @media(max-width:640px){
+    .sidebar{transform:translateX(-100%)}
+    .sidebar.open{transform:translateX(0)}
+    .main-wrap{margin-left:0}
+    .content{padding:12px}
+    .confirm-box{width:calc(100vw - 32px)}
+  }
+  @media(min-width:641px) and (max-width:800px){
+    .sidebar{transform:translateX(-100%)}
+    .sidebar.open{transform:translateX(0)}
+    .main-wrap{margin-left:0}
+    .content{padding:16px}
+  }
+  @media(min-width:801px) and (max-width:1100px){
+    :root{--sidebar-w:180px}
+    .content{padding:20px}
+  }
+  @media(min-width:1101px) and (max-width:1400px){
+    :root{--sidebar-w:220px}
+  }
+  @media(min-width:1401px){
+    :root{--sidebar-w:260px}
+    .content{padding:32px 48px}
+  }
+
+  /* ─── page title ─────────────────────────────────────────── */
+  .page-title{font-family:var(--font-display);font-size:22px;font-weight:600;color:var(--fg);margin-bottom:20px}
+
+  /* ─── summary row ────────────────────────────────────────── */
+  .summary-row{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-bottom:16px}
+  .summary-card{background:var(--surface);border-radius:var(--radius-lg);padding:16px 20px;box-shadow:var(--shadow-card);border:1px solid var(--border);transition:box-shadow .2s}
+  .summary-card:hover{box-shadow:rgba(0,0,0,0.06) 0 4px 12px}
+  .summary-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .summary-card-label{font-size:13px;color:var(--fg);font-weight:700}
+  .summary-card-icon{width:28px;height:28px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center}
+  .summary-card-icon svg{width:14px;height:14px}
+  .summary-card-icon.green{background:var(--accent-light);color:var(--accent-deep)}
+  .summary-card-icon.blue{background:#dbeafe;color:#2563eb}
+  .summary-card-icon.amber{background:#fef3c7;color:#d97706}
+  .summary-card-icon.purple{background:#ede9fe;color:#7c3aed}
+  .stat-values{display:flex;gap:24px}
+  .stat-value{display:flex;flex-direction:column}
+  .stat-number{font-family:var(--font-display);font-size:28px;font-weight:600;letter-spacing:-0.4px;line-height:1.2}
+  .stat-unit{font-size:12px;color:var(--muted-light);margin-top:2px}
+  .rate-value{font-family:var(--font-display);font-size:30px;font-weight:600;color:var(--fg);line-height:1.2;margin-bottom:2px}
+  .rate-trend{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:500;color:var(--muted-light)}
+  .rate-trend.up{color:#00d4a4}
+  .rate-trend.down{color:#ef4444}
+  .rate-trend svg{width:12px;height:12px}
+
+  /* ─── heatmap ────────────────────────────────────────────── */
+  .heatmap-card{background:var(--surface);border-radius:var(--radius-lg);padding:24px;box-shadow:var(--shadow-card);border:1px solid var(--border-md);margin-bottom:16px}
+  .heatmap-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+  .heatmap-title{font-family:var(--font-display);font-size:16px;font-weight:600;color:var(--fg)}
+  .heatmap-legend{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+  .heatmap-legend-bar{display:flex;gap:2px}
+  .heatmap-legend-bar>span{width:16px;height:10px;border-radius:2px}
+  .legend-item{position:relative;cursor:pointer}
+  .legend-tip{position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:var(--fg);color:#fff;font-size:10px;padding:2px 6px;border-radius:var(--radius-xs);white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s;z-index:10}
+  .legend-item:hover .legend-tip{opacity:1}
+  .heatmap-wrap{display:flex;gap:12px}
+  .heatmap-y-labels{display:flex;flex-direction:column;justify-content:flex-start;gap:4px;padding-top:0;flex-shrink:0;width:72px}
+  .heatmap-y-label{font-size:12px;color:var(--muted);text-align:right;line-height:34px;height:34px}
+  .heatmap-main{flex:1;min-width:0}
+  .heatmap-grid-row{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;margin-bottom:4px}
+  .heatmap-months{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;margin-top:6px}
+  .heatmap-y-year{font-size:11px;color:var(--muted-light);text-align:right;line-height:1;margin-top:6px}
+  .heatmap-month-label{font-size:11px;color:var(--muted-light);text-align:center}
+  .heatmap-cell{height:34px;border-radius:var(--radius-sm);cursor:pointer;position:relative}
+  .heatmap-cell-tooltip{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--fg);color:#fff;font-size:12px;padding:4px 10px;border-radius:var(--radius-sm);white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s;z-index:10}
+  .heatmap-cell:hover .heatmap-cell-tooltip{opacity:1}
+
+  /* ─── device tables row ──────────────────────────────────── */
+  .tables-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .table-card{background:var(--surface);border-radius:var(--radius-lg);padding:24px;box-shadow:var(--shadow-card);border:1px solid var(--border-md);display:flex;flex-direction:column;min-width:0}
+  .table-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+  .table-card-title{font-family:var(--font-display);font-size:16px;font-weight:600;color:var(--fg)}
+  .table-card-link{font-size:13px;color:#00d4a4;cursor:pointer;font-weight:500;text-decoration:none}
+  .table-card-link:hover{opacity:.8}
+  .dev-table{width:100%;border-collapse:collapse;font-size:14px;table-layout:fixed}
+  .dev-table thead{background:transparent}
+  .dev-table th{text-align:left;padding:12px 14px;font-size:14px;font-weight:700;color:#000;border-bottom:1px solid var(--border-md)}
+  .dev-table td{padding:12px 14px;border-bottom:1px solid #F2F2F2;color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .dev-table td:first-child,.dev-table th:first-child{text-align:center}
+  .dev-table th:last-child,.dev-table td:last-child{text-align:right;padding-right:20px}
+  .dev-table tbody tr:hover{background:rgba(0,212,164,.03)}
+  .dev-table tr:last-child td{border-bottom:none}
+  .table-footer{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:12px;font-size:13px;color:var(--muted)}
+  .table-scroll{position:relative;height:500px;display:flex;flex-direction:column;overflow-x:auto;overflow-y:hidden}
+  .table-scroll .dev-table{width:auto;min-width:100%;border-collapse:collapse;font-size:14px;table-layout:fixed;flex-shrink:0}
+  .table-empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--muted-light);pointer-events:none}
+  .table-empty svg{width:48px;height:48px;opacity:0.35}
+  .table-empty span{font-size:14px;font-weight:500}
+  .table-pager{display:flex;align-items:center;gap:6px}
+  .pager-btn{width:32px;height:32px;border-radius:var(--radius-md);border:1px solid var(--border-md);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--fg);transition:background .15s,border-color .15s}
+  .pager-btn:hover:not(:disabled){background:var(--bg);border-color:var(--border-md)}
+  .pager-btn:disabled{opacity:.4;cursor:not-allowed}
+  .pager-btn svg{width:14px;height:14px}
+  .pager-info{font-size:13px;color:var(--muted)}
+  .online-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
+  .online-dot.on{background:#00d4a4}
+  .online-dot.off{background:#ccc}
+  .license-badge{font-size:12px;font-weight:400;padding:3px 10px;border-radius:9999px;display:inline-block}
+  .license-badge.active{background:#e8faf3;color:#00d4a4}
+  .license-badge.expired{background:#fef2f2;color:#ef4444}
+
+  /* ─── terminal status button ─────────────────────────────── */
+  .terminal-status-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:5px 12px 5px 14px;border:1px solid var(--border-md);border-radius:var(--radius-pill);background:var(--surface);cursor:default;font-family:var(--font-body);font-size:13px;font-weight:500;color:var(--muted-light);transition:border-color .2s,background .2s,opacity .2s;user-select:none;position:relative;min-width:32px;min-height:32px}
+  .terminal-status-btn .count-label{color:inherit;white-space:nowrap}
+  .terminal-status-btn .count-green{color:#00d4a4}
+  .terminal-status-btn .count-gray{color:var(--muted-light)}
+  .terminal-status-btn.has-online{border-color:#00d4a4}
+  .terminal-status-btn.all-offline{border-color:var(--border-md)}
+  .terminal-status-btn .loading-spinner{display:none;position:absolute;top:50%;left:50%;width:16px;height:16px;margin:-9px 0 0 -9px;border:2px solid var(--border-md);border-top-color:var(--fg);border-radius:50%;animation:spin .8s linear infinite}
+  .terminal-status-btn.is-loading .count-label{display:none}
+  .terminal-status-btn.is-loading .loading-spinner{display:block}
+  .terminal-status-btn.is-loading{border-color:transparent}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes msg-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+  .msg-container{position:fixed;top:24px;left:50%;transform:translateX(-50%);z-index:10000;display:flex;flex-direction:column;gap:12px;pointer-events:none}
+  .msg{display:flex;align-items:center;gap:10px;padding:14px 24px;border-radius:var(--radius-lg);font-size:14px;font-weight:500;font-family:var(--font-body);box-shadow:0 8px 32px rgba(0,0,0,0.12),0 2px 8px rgba(0,0,0,0.06);pointer-events:auto;opacity:0;transform:translateY(-12px);transition:opacity .3s,transform .3s;max-width:480px;white-space:nowrap;background:#fff;color:var(--fg);border:1px solid var(--border-md)}
+  .msg.show{opacity:1;transform:translateY(0)}
+  .msg-icon{display:flex;align-items:center;flex-shrink:0}
+  .msg-icon svg{width:20px;height:20px}
+  .msg-success .msg-icon{color:var(--accent)}
+  .msg-error .msg-icon{color:var(--error)}
+  .msg-error{background:#fef2f2;border-color:#fecaca}
+
+  /* ─── responsive ─────────────────────────────────────────── */
+  @media(max-width:900px){
+    .summary-row{grid-template-columns:repeat(2,1fr)}
+    .tables-row{grid-template-columns:1fr}
+  }
+  @media(max-width:600px){
+    .summary-row{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<!-- 侧边栏 -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="sidebar-logo-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path></svg>
+    </div>
+    <span class="sidebar-logo-text">明瞳  · IVHMS</span>
+  </div>
+  <nav class="sidebar-nav">
+    <a class="sidebar-item" href="index.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect></svg>
+      数据概览
+    </a>
+    <a class="sidebar-item" href="statistics.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+      统计分析
+    </a>
+    <a class="sidebar-item" href="health-records.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+      健康档案
+    </a>
+    <a class="sidebar-item active" href="device-status.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+      设备状态
+    </a>
+  </nav>
+  <div class="sidebar-bottom">
+    <div class="sidebar-user" id="sidebarUser">
+      <div class="sidebar-avatar">远</div>
+      <span class="sidebar-username">张明远</span>
+    </div>
+    <div class="sidebar-bottom-actions">
+      <div class="sidebar-bottom-btn" id="sidebarMsgBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 01-3.46 0"></path></svg>
+      </div>
+      <div class="sidebar-bottom-btn" id="sidebarHelpBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- 主内容区 -->
+<div class="main-wrap">
+
+  <!-- 用户下拉菜单（独立浮层） -->
+  <div class="sidebar-user-dropdown" id="userPanel">
+    <a class="user-menu-item" href="index.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+      个人中心
+    </a>
+    <a class="user-menu-item" href="index.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+      管理后台
+    </a>
+    <div class="user-menu-divider"></div>
+    <div class="user-menu-item danger" id="logoutBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+      退出登录
+    </div>
+  </div>
+
+  <!-- 消息面板（独立浮层） -->
+  <div class="sidebar-msg-panel" id="msgPanel">
+    <div class="msg-header">
+      <span class="msg-header-title">消息通知</span>
+      <button class="msg-clear-btn" id="msgClearBtn">全部已读</button>
+    </div>
+    <div class="msg-list" id="msgList">
+      <div class="msg-item">
+        <div class="msg-item-top"><span class="msg-item-title">三年级视力筛查已完成</span><span class="msg-item-time">10:30</span></div>
+        <span class="msg-item-type">筛查通知</span>
+      </div>
+      <div class="msg-item">
+        <div class="msg-item-top"><span class="msg-item-title">训练仪 2 已离线，请检查连接</span><span class="msg-item-time">09:15</span></div>
+        <span class="msg-item-type">设备告警</span>
+      </div>
+      <div class="msg-item">
+        <div class="msg-item-top"><span class="msg-item-title">本周筛查报告已生成</span><span class="msg-item-time">昨天</span></div>
+        <span class="msg-item-type">报告通知</span>
+      </div>
+      <div class="msg-item">
+        <div class="msg-item-top"><span class="msg-item-title">新学期视力评估任务已发布</span><span class="msg-item-time">2天前</span></div>
+        <span class="msg-item-type">任务通知</span>
+      </div>
+      <div class="msg-item">
+        <div class="msg-item-top"><span class="msg-item-title">筛查终端 A 固件更新成功</span><span class="msg-item-time">3天前</span></div>
+        <span class="msg-item-type">系统通知</span>
+      </div>
+    </div>
+    <div class="msg-empty" id="msgEmpty" style="display:none">
+      <div class="msg-empty-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 01-3.46 0"></path></svg>
+      </div>
+      <span class="msg-empty-text">暂无消息</span>
+    </div>
+    <div class="msg-footer" id="msgViewAll">查看全部消息</div>
+  </div>
+
+  <!-- 内容区 -->
+  <div class="content">
+      <div class="content-header">
+        <div class="content-title">设备状态</div>
+        <div style="display:flex;align-items:center;gap:20px">
+          <span class="sync-time" id="syncTimeDisplay">最近同步：--</span>
+          <button class="seg-btn active" id="syncStatusBtn">状态同步</button>
+        </div>
+      </div>
+
+    <!-- 第一行：概览卡片 -->
+    <div class="summary-row">
+      <div class="summary-card">
+        <div class="summary-card-header">
+          <span class="summary-card-label">设备数量</span>
+          <div class="summary-card-icon green">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+          </div>
+        </div>
+        <div class="stat-values">
+          <div class="stat-value">
+            <div class="stat-number">52</div>
+            <div class="stat-unit">总计</div>
+          </div>
+        </div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-card-header">
+          <span class="summary-card-label">终端设备</span>
+          <div class="summary-card-icon blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+          </div>
+        </div>
+        <div class="stat-values">
+          <div class="stat-value">
+            <div class="stat-number">2</div>
+            <div class="stat-unit">总计</div>
+          </div>
+        </div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-card-header">
+          <span class="summary-card-label">训练设备</span>
+          <div class="summary-card-icon purple">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="15" r="4"></circle><circle cx="18" cy="15" r="4"></circle><path d="M10 15a2 2 0 014 0"></path><path d="M2 15c0-7 4-9 4-9s2 1 4 0"></path><path d="M22 15c0-7-4-9-4-9s-2 1-4 0"></path></svg>
+          </div>
+        </div>
+        <div class="stat-values">
+          <div class="stat-value">
+            <div class="stat-number">50</div>
+            <div class="stat-unit">总计</div>
+          </div>
+        </div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-card-header">
+          <span class="summary-card-label">终端设备在线率</span>
+          <div class="summary-card-icon blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+          </div>
+        </div>
+        <div class="rate-value">90%</div>
+        <div class="rate-trend down">
+          环比 7.22% ↘
+        </div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-card-header">
+          <span class="summary-card-label">训练设备在线率</span>
+          <div class="summary-card-icon amber">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+          </div>
+        </div>
+        <div class="rate-value">90%</div>
+        <div class="rate-trend up">
+          环比 12.22% ↗
+        </div>
+      </div>
+    </div>
+
+    <!-- 第二行：热力图 -->
+    <div class="heatmap-card">
+      <div class="heatmap-header">
+        <div class="heatmap-title">使用率</div>
+        <div class="heatmap-legend">
+          <span>使用率</span>
+          <div class="heatmap-legend-bar">
+            <span class="legend-item" style="background:rgba(0,0,0,0.04)"><span class="legend-tip">≈0%</span></span>
+            <span class="legend-item" style="background:rgba(0,212,164,0.1)"><span class="legend-tip">≤25%</span></span>
+            <span class="legend-item" style="background:rgba(0,212,164,0.3)"><span class="legend-tip">≤50%</span></span>
+            <span class="legend-item" style="background:rgba(0,212,164,0.6)"><span class="legend-tip">≤75%</span></span>
+            <span class="legend-item" style="background:rgba(0,212,164,0.9)"><span class="legend-tip">≤100%</span></span>
+          </div>
+        </div>
+      </div>
+      <div class="heatmap-wrap">
+        <div class="heatmap-y-labels" id="heatmapYLabels"></div>
+        <div class="heatmap-main">
+          <div id="heatmapGrid"></div>
+          <div class="heatmap-months" id="heatmapMonths"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 第三行：设备列表 -->
+    <div class="tables-row">
+      <!-- 终端设备 -->
+      <div class="table-card">
+        <div class="table-card-header">
+          <span class="table-card-title">终端设备</span>
+          <div class="terminal-status-btn" id="terminalStatusBtn">
+            <span class="count-label" id="terminalCountLabel">全部离线</span>
+            <span class="loading-spinner"></span>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table class="dev-table terminal-table">
+            <colgroup>
+              <col style="width:50px"><col style="width:180px"><col style="width:90px"><col style="width:80px"><col style="width:100px"><col style="width:170px">
+            </colgroup>
+            <thead>
+              <tr><th>状态</th><th>设备名</th><th>类型</th><th>授权状态</th><th>客户端版本</th><th>最近在线</th></tr>
+            </thead>
+            <tbody id="terminalTableBody"></tbody>
+          </table>
+          <div class="table-empty" id="terminalEmpty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+            <span>暂无数据</span>
+          </div>
+        </div>
+        <div class="table-footer">
+          <span class="pager-info" id="terminalPagerInfo">共 2 台</span>
+          <div class="table-pager" id="terminalPager"></div>
+        </div>
+      </div>
+
+      <!-- 训练设备 -->
+      <div class="table-card">
+        <div class="table-card-header">
+          <span class="table-card-title">训练设备</span>
+          <div class="terminal-status-btn" id="trainingStatusBtn">
+            <span class="count-label" id="trainingCountLabel">全部离线</span>
+            <span class="loading-spinner"></span>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table class="dev-table">
+            <colgroup>
+              <col style="width:50px"><col style="width:120px"><col style="width:230px"><col style="width:170px">
+            </colgroup>
+            <thead>
+              <tr><th>状态</th><th>设备编号</th><th>设备ID</th><th>最近在线</th></tr>
+            </thead>
+            <tbody id="trainingTableBody"></tbody>
+          </table>
+          <div class="table-empty" id="trainingEmpty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="15" r="4"></circle><circle cx="18" cy="15" r="4"></circle><path d="M10 15a2 2 0 014 0"></path><path d="M2 15c0-7 4-9 4-9s2 1 4 0"></path><path d="M22 15c0-7-4-9-4-9s-2 1-4 0"></path></svg>
+            <span>暂无数据</span>
+          </div>
+        </div>
+        <div class="table-footer">
+          <span class="pager-info" id="trainingPagerInfo">共 50 台</span>
+          <div class="table-pager" id="trainingPager"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<div class="msg-container" id="msgContainer"></div>
+
+<!-- 退出登录确认对话框 -->
+<div class="confirm-overlay" id="logoutOverlay">
+  <div class="confirm-box">
+    <div class="confirm-title">确认退出</div>
+    <div class="confirm-msg">确定退出登录？</div>
+    <div class="confirm-actions">
+      <button class="confirm-btn confirm-btn-cancel" id="logoutCancel">取消</button>
+      <button class="confirm-btn confirm-btn-danger" id="logoutConfirm">退出登录</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+  'use strict';
+
+  var msgPanel = document.getElementById('msgPanel');
+  var userPanel = document.getElementById('userPanel');
+  var sidebarUser = document.getElementById('sidebarUser');
+  var sidebarMsgBtn = document.getElementById('sidebarMsgBtn');
+  var sidebarHelpBtn = document.getElementById('sidebarHelpBtn');
+
+  function closeAll() {
+    msgPanel.classList.remove('open');
+    userPanel.classList.remove('open');
+  }
+
+  sidebarUser.addEventListener('click', function(e) {
+    e.stopPropagation();
+    var isOpen = userPanel.classList.contains('open');
+    closeAll();
+    if (!isOpen) userPanel.classList.add('open');
+  });
+
+  sidebarMsgBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    var isOpen = msgPanel.classList.contains('open');
+    closeAll();
+    if (!isOpen) msgPanel.classList.add('open');
+  });
+
+  sidebarHelpBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    closeAll();
+  });
+
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.sidebar-bottom-btn') && !e.target.closest('.sidebar-user') && !e.target.closest('.sidebar-user-dropdown') && !e.target.closest('.sidebar-msg-panel')) closeAll();
+  });
+
+  /* ─── logout with confirm ──────────────────────────────────── */
+  var logoutOverlay = document.getElementById('logoutOverlay');
+  document.getElementById('logoutBtn').addEventListener('click', function() {
+    closeAll();
+    logoutOverlay.classList.add('open');
+  });
+  document.getElementById('logoutCancel').addEventListener('click', function() {
+    logoutOverlay.classList.remove('open');
+  });
+  document.getElementById('logoutConfirm').addEventListener('click', function() {
+    window.location.href = 'login.html';
+  });
+  logoutOverlay.addEventListener('click', function(e) {
+    if (e.target === logoutOverlay) logoutOverlay.classList.remove('open');
+  });
+
+  /* ─── message panel: clear all ──────────────────────────────── */
+  var msgClearBtn = document.getElementById('msgClearBtn');
+  if (msgClearBtn) {
+    msgClearBtn.addEventListener('click', function() {
+      var list = document.getElementById('msgList');
+      list.innerHTML = '';
+      var empty = document.getElementById('msgEmpty');
+      if (empty) empty.style.display = '';
+    });
+  }
+
+  /* ─── message panel: mark as read on click ──────────────────── */
+  var msgList = document.getElementById('msgList');
+  if (msgList) {
+    msgList.addEventListener('click', function(e) {
+      var item = e.target.closest('.msg-item');
+      if (item) {
+        item.dataset.read = 'true';
+        item.style.opacity = '0.5';
+      }
+    });
+  }
+
+  /* ─── message panel: view all → navigate to index ──────────── */
+  var msgViewAll = document.getElementById('msgViewAll');
+  if (msgViewAll) {
+    msgViewAll.addEventListener('click', function() {
+      closeAll();
+      window.location.href = 'index.html';
+    });
+  }
+
+  /* ─── message panel: close on clear-btn click (re-show empty) ─ */
+  /* already handled above */
+
+  /* ═══ 设备状态页面交互 ═══════════════════════════════════════ */
+
+  /* ─── 热力图 ──────────────────────────────────────────────── */
+  var months = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+  var heatRows = ['训练设备','终端设备'];
+  // 模拟数据：3~5月、9~12月有使用率（不同深浅），其他月份接近0
+  var heatData = [
+    [0,2,12,45,78,1,0,3,8,55,30,68],    // 训练设备
+    [1,0,6,35,65,2,0,0,15,42,22,55]     // 终端设备
+  ];
+
+  // 渲染月份标签
+  var monthsEl = document.getElementById('heatmapMonths');
+  months.forEach(function(m){
+    var el = document.createElement('div');
+    el.className = 'heatmap-month-label';
+    el.textContent = m;
+    monthsEl.appendChild(el);
+  });
+
+  // 渲染 Y 轴标签
+  var yLabelsEl = document.getElementById('heatmapYLabels');
+  heatRows.forEach(function(r){
+    var el = document.createElement('div');
+    el.className = 'heatmap-y-label';
+    el.textContent = r;
+    yLabelsEl.appendChild(el);
+  });
+  // 年份标签
+  var yearEl = document.createElement('div');
+  yearEl.className = 'heatmap-y-year';
+  yearEl.textContent = '2026年';
+  yLabelsEl.appendChild(yearEl);
+
+  // 根据 usage 返回颜色
+  function heatColor(usage){
+    if(usage <= 3) return 'rgba(0,0,0,0.04)';  // 无使用
+    if(usage < 25) return 'rgba(0,212,164,0.1)';
+    if(usage < 50) return 'rgba(0,212,164,0.3)';
+    if(usage < 75) return 'rgba(0,212,164,0.6)';
+    return 'rgba(0,212,164,0.9)';
+  }
+
+  // 渲染热力图网格
+  var gridEl = document.getElementById('heatmapGrid');
+  heatData.forEach(function(row){
+    var rowEl = document.createElement('div');
+    rowEl.className = 'heatmap-grid-row';
+    row.forEach(function(val){
+      var cell = document.createElement('div');
+      cell.className = 'heatmap-cell';
+      cell.style.background = heatColor(val);
+      var tip = document.createElement('div');
+      tip.className = 'heatmap-cell-tooltip';
+      tip.textContent = '使用率 ' + val + '%';
+      cell.appendChild(tip);
+      rowEl.appendChild(cell);
+    });
+    gridEl.appendChild(rowEl);
+  });
+
+  /* ─── 终端设备表格 ────────────────────────────────────────── */
+  var terminalData = [
+    {idx:1, name:'3S6GWAKUS7YQCUB', type:'视力评估', license:'已授权', version:'2.4.1', online:'2026-07-03 14:22', status:true},
+    {idx:2, name:'DW29JSYFN27SJ123K', type:'视力评估', license:'到期',   version:'2.4.1', online:'2026-07-03 09:15', status:false}
+  ];
+  var terminalPage = 1;
+  var terminalPageSize = 10;
+
+  function renderTerminalTable(){
+    var tbody = document.getElementById('terminalTableBody');
+    tbody.innerHTML = '';
+    var start = (terminalPage - 1) * terminalPageSize;
+    var end = Math.min(start + terminalPageSize, terminalData.length);
+    for(var i = start; i < end; i++){
+      var d = terminalData[i];
+      var tr = document.createElement('tr');
+      var licClass = d.license === '已授权' ? 'active' : 'expired';
+      tr.innerHTML = '<td><span class="online-dot ' + (d.status ? 'on' : 'off') + '"></span></td><td>' + d.name + '</td><td>' + d.type + '</td><td><span class="license-badge ' + licClass + '">' + d.license + '</span></td><td>' + d.version + '</td><td>' + d.online + '</td>';
+      tbody.appendChild(tr);
+    }
+    document.getElementById('terminalEmpty').style.display = (end - start) === 0 ? '' : 'none';
+    renderPager('terminalPager', terminalData.length, terminalPageSize, terminalPage, function(p){ terminalPage = p; renderTerminalTable(); });
+    document.getElementById('terminalPagerInfo').textContent = '共 ' + terminalData.length + ' 台';
+    updateTerminalStatus();
+  }
+
+  /* ─── 终端设备状态按钮 ────────────────────────────────────── */
+  function updateTerminalStatus(){
+    var label = document.getElementById('terminalCountLabel');
+    var btn = document.getElementById('terminalStatusBtn');
+    var onlineCount = 0;
+    for(var i = 0; i < terminalData.length; i++){
+      if(terminalData[i].status) onlineCount++;
+    }
+    if(onlineCount === 0){
+      label.textContent = '全部离线';
+      label.className = 'count-label count-gray';
+      btn.className = 'terminal-status-btn all-offline';
+    } else {
+      label.textContent = '在线数量：' + onlineCount;
+      label.className = 'count-label count-green';
+      btn.className = 'terminal-status-btn has-online';
+    }
+  }
+
+  /* ─── 训练设备状态按钮 ────────────────────────────────────── */
+  function updateTrainingStatus(){
+    var label = document.getElementById('trainingCountLabel');
+    var btn = document.getElementById('trainingStatusBtn');
+    var onlineCount = 0;
+    for(var i = 0; i < trainingData.length; i++){
+      if(trainingData[i].status) onlineCount++;
+    }
+    if(onlineCount === 0){
+      label.textContent = '全部离线';
+      label.className = 'count-label count-gray';
+      btn.className = 'terminal-status-btn all-offline';
+    } else {
+      label.textContent = '在线数量：' + onlineCount;
+      label.className = 'count-label count-green';
+      btn.className = 'terminal-status-btn has-online';
+    }
+  }
+
+  /* ─── global message ──────────────────────────────────────────── */
+  var msgContainer = document.getElementById('msgContainer');
+  var msgTimers = {};
+
+  function showMsg(id, type, msg, duration) {
+    var el = document.getElementById('msg-' + id);
+    if (el) { el.remove(); clearTimeout(msgTimers[id]); }
+
+    var div = document.createElement('div');
+    div.className = 'msg msg-' + type;
+    div.id = 'msg-' + id;
+
+    var icon = '';
+    if (type === 'success') {
+      icon = '<div class="msg-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg></div>';
+    } else if (type === 'error') {
+      icon = '<div class="msg-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg></div>';
+    }
+    div.innerHTML = icon + '<span>' + msg + '</span>';
+    msgContainer.appendChild(div);
+    requestAnimationFrame(function() { div.classList.add('show'); });
+
+    if (duration) {
+      msgTimers[id] = setTimeout(function() {
+        div.classList.remove('show');
+        setTimeout(function() { div.remove(); }, 300);
+      }, duration);
+    }
+  }
+
+  /* ─── 生成随机设备ID（8位数字） ────────────────────────────── */
+  function randomDevId(){
+    var id = '';
+    for(var c = 0; c < 8; c++) id += Math.floor(Math.random() * 10);
+    return id;
+  }
+
+  /* ─── 训练设备表格 ────────────────────────────────────────── */
+  var trainingData = [];
+  for(var i = 1; i <= 50; i++){
+    var day = Math.floor(Math.random() * 3) + 1;
+    var hour = Math.floor(Math.random() * 12) + 8;
+    trainingData.push({
+      idx: i,
+      devId: 'TG-' + String(1000 + i),
+      devCode: randomDevId(),
+      status: Math.random() > 0.1,
+      online: '2026-07-0' + day + ' ' + String(hour).padStart(2,'0') + ':' + String(Math.floor(Math.random()*60)).padStart(2,'0')
+    });
+  }
+  var trainingPage = 1;
+  var trainingPageSize = 10;
+
+  function renderTrainingTable(){
+    var tbody = document.getElementById('trainingTableBody');
+    tbody.innerHTML = '';
+    var start = (trainingPage - 1) * trainingPageSize;
+    var end = Math.min(start + trainingPageSize, trainingData.length);
+    for(var i = start; i < end; i++){
+      var d = trainingData[i];
+      var tr = document.createElement('tr');
+      tr.innerHTML = '<td><span class="online-dot ' + (d.status ? 'on' : 'off') + '"></span></td><td>' + d.devId + '</td><td>' + d.devCode + '</td><td>' + d.online + '</td>';
+      tbody.appendChild(tr);
+    }
+    document.getElementById('trainingEmpty').style.display = (end - start) === 0 ? '' : 'none';
+    renderPager('trainingPager', trainingData.length, trainingPageSize, trainingPage, function(p){ trainingPage = p; renderTrainingTable(); });
+    document.getElementById('trainingPagerInfo').textContent = '共 ' + trainingData.length + ' 台';
+    updateTrainingStatus();
+  }
+
+  /* ─── 通用分页渲染 ────────────────────────────────────────── */
+  function renderPager(containerId, total, pageSize, current, onChange){
+    var totalPages = Math.ceil(total / pageSize);
+    var el = document.getElementById(containerId);
+    el.innerHTML = '';
+
+    // 上一页
+    var prev = document.createElement('button');
+    prev.className = 'pager-btn';
+    prev.disabled = current <= 1;
+    prev.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>';
+    prev.addEventListener('click', function(){ if(current > 1) onChange(current - 1); });
+    el.appendChild(prev);
+
+    // 页码
+    var info = document.createElement('span');
+    info.className = 'pager-info';
+    info.textContent = current + ' / ' + totalPages;
+    info.style.margin = '0 8px';
+    el.appendChild(info);
+
+    // 下一页
+    var next = document.createElement('button');
+    next.className = 'pager-btn';
+    next.disabled = current >= totalPages;
+    next.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>';
+    next.addEventListener('click', function(){ if(current < totalPages) onChange(current + 1); });
+    el.appendChild(next);
+  }
+
+  /* ─── 全局同步（带频率限制） ─────────────────────────────────── */
+  function formatSyncTime(){
+    var d = new Date();
+    return '最近同步：' + d.getFullYear() + '-' + String(d.getDate()).padStart(2,'0') + '-' + String(d.getMonth()+1).padStart(2,'0') + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0') + ':' + String(d.getSeconds()).padStart(2,'0');
+  }
+  var syncTimestamps = [];
+  var isRateLimited = false;
+  function recordSyncTrigger(){
+    var now = Date.now();
+    syncTimestamps = syncTimestamps.filter(function(t){ return now - t < 1000; });
+    syncTimestamps.push(now);
+    console.log('[sync] timestamps:', syncTimestamps.length, 'within 1s');
+    if(isRateLimited) return true;
+    if(syncTimestamps.length > 2){
+      isRateLimited = true;
+      console.log('[sync] RATE LIMITED');
+      showMsg('rate-limit', 'error', '同步次数过多，请10秒后重试', 10000);
+      setTimeout(function(){ isRateLimited = false; syncTimestamps = []; console.log('[sync] rate limit cleared'); }, 10000);
+      return true;
+    }
+    return false;
+  }
+  function doGlobalSync(showToast){
+    document.getElementById('syncStatusBtn').classList.add('is-loading');
+    document.getElementById('syncStatusBtn').textContent = '同步中...';
+    document.getElementById('terminalStatusBtn').classList.add('is-loading');
+    document.getElementById('trainingStatusBtn').classList.add('is-loading');
+    if(showToast) showMsg('global-sync', 'success', '设备状态同步中...', 2000);
+    setTimeout(function(){
+      if(isRateLimited){
+        // 限流期间：只更新数据，不弹成功提示
+        for(var i = 0; i < terminalData.length; i++){ terminalData[i].status = Math.random() > 0.8; terminalData[i].license = Math.random() > 0.3 ? '已授权' : '到期'; }
+        for(var i = 0; i < trainingData.length; i++){ trainingData[i].status = Math.random() > 0.15; }
+        renderTerminalTable();
+        renderTrainingTable();
+        document.getElementById('syncStatusBtn').classList.remove('is-loading');
+        document.getElementById('terminalStatusBtn').classList.remove('is-loading');
+        document.getElementById('trainingStatusBtn').classList.remove('is-loading');
+        document.getElementById('syncStatusBtn').textContent = '状态同步';
+        return;
+      }
+      for(var i = 0; i < terminalData.length; i++){ terminalData[i].status = Math.random() > 0.8; terminalData[i].license = Math.random() > 0.3 ? '已授权' : '到期'; }
+      for(var i = 0; i < trainingData.length; i++){ trainingData[i].status = Math.random() > 0.15; }
+      renderTerminalTable();
+      renderTrainingTable();
+      document.getElementById('syncStatusBtn').classList.remove('is-loading');
+      document.getElementById('syncStatusBtn').textContent = '状态同步';
+      document.getElementById('syncTimeDisplay').textContent = formatSyncTime();
+      document.getElementById('terminalStatusBtn').classList.remove('is-loading');
+      document.getElementById('trainingStatusBtn').classList.remove('is-loading');
+      if(showToast) showMsg('global-sync', 'success', '设备状态已同步', 3000);
+    }, 1500);
+  }
+
+  /* ─── 全局同步状态按钮 ─────────────────────────────────────── */
+  document.getElementById('syncStatusBtn').addEventListener('click', function(){
+    if(isRateLimited) return;
+    if(recordSyncTrigger()) return;
+    if(this.classList.contains('is-loading')) return;
+    doGlobalSync(true);
+  });
+
+  // 页面加载时自动执行一次同步 — 也记录到触发计数中
+  recordSyncTrigger();
+  doGlobalSync(true);
+</script>
+</body></html>

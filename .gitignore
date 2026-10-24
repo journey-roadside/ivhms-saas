@@ -1,0 +1,23 @@
+# 黑名单元数据（IDE / 系统 / 缓存）
+
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+*~
+
+# 工具与缓存目录
+.workbuddy/
+Python/
+test/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# 日志与临时文件
+*.log
+temp/
+TEMP/

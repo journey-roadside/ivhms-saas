@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "health-records.html",
+  "entry": "health-records.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-07-02T13:27:57.434Z",
+  "updatedAt": "2026-07-02T13:27:57.434Z",
+  "metadata": {
+    "inferred": true,
+    "reconciled": true
+  }
+}
