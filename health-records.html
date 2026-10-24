@@ -1441,8 +1441,8 @@
 
   /* ─── export button ────────────────────────────────────────── */
   document.getElementById('exportBtn').addEventListener('click', function() {
-    var checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
-    if (checkedBoxes.length === 0) {
+    var selectedIds = selectedRecordIds();
+    if (selectedIds.length === 0) {
       showMessage('export-warn', 'warning', '请选择需要导出的数据', 3000);
       return;
     }
@@ -1450,13 +1450,15 @@
     showMessage('export-loading', 'loading', '正在导出，请勿刷新或离开页面');
 
     setTimeout(function() {
-      var selectedIds = [];
-      checkedBoxes.forEach(function(cb) { selectedIds.push(cb.getAttribute('data-id')); });
-
-      var selectedRecords = recordData.filter(function(r) { return selectedIds.indexOf(r.healthId) !== -1; });
+      var chosenRecords = recordData.filter(function(r) { return selectedIds.indexOf(r.healthId) !== -1; });
       var csvContent = '学号,健康ID,姓名,性别,年龄,年级,班级,最近评估时间,最近训练时间,状态\n';
-      selectedRecords.forEach(function(r) {
-        csvContent += r.studentNo + ',' + r.healthId + ',' + r.name + ',' + r.gender + ',' + r.age + ',' + r.class.replace(/(\d+班)$/, '') + ',' + (r.class.match(/(\d+班)$/) || [''])[0] + ',' + r.lastAssessTime + ',' + r.lastTrainTime + ',' + r.status + '\n';
+      function esc(v) {
+        var str = String(v == null ? '' : v);
+        if (/^[=+\-@\t\r]/.test(str)) str = "'" + str;
+        return /[",\r\n]/.test(str) ? '"' + str.replace(/"/g, '""') + '"' : str;
+      }
+      chosenRecords.forEach(function(r) {
+        csvContent += esc(r.studentNo) + ',' + esc(r.healthId) + ',' + esc(r.name) + ',' + esc(r.gender) + ',' + esc(r.age) + ',' + esc(r.class.replace(/(\d+班)$/, '')) + ',' + esc((r.class.match(/(\d+班)$/) || [''])[0]) + ',' + esc(r.lastAssessTime) + ',' + esc(r.lastTrainTime) + ',' + esc(r.status) + '\n';
       });
 
       var blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });

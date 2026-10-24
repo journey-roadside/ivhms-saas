@@ -1045,6 +1045,12 @@
     return !!(appliedFilter.keyword || appliedFilter.type || appliedFilter.status);
   }
 
+  function escHtml(v) {
+    return String(v == null ? '' : v).replace(/[&<>"']/g, function(c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
   function renderTaskTable() {
     var list = filteredTasks();
     var totalPages = Math.max(1, Math.ceil(list.length / taskPageSize));
@@ -1057,7 +1063,7 @@
       var st = taskStatus(t);
       return '<tr>' +
         '<td style="text-align:center"><input type="checkbox" class="row-checkbox task-check" data-task-id="' + t.id + '"' + (isTaskChecked(t.id) ? ' checked' : '') + '></td>' +
-        '<td>' + t.name + '</td>' +
+        '<td>' + escHtml(t.name) + '</td>' +
         '<td><span class="type-badge ' + typeClass(t.type) + '">' + t.type + '</span></td>' +
         '<td>' + totals.should + ' 人</td>' +
         '<td>' + t.start + '</td>' +
@@ -1193,7 +1199,7 @@
     var names = blocked.map(function(t) { return t.name; });
     showMessage('task-delete-blocked', 'warning',
       '仅「未开始」的任务可删除，' + (names.length === 1 ? '该任务' : '以下任务') +
-      '已开始或已完成：' + names.join('、'), 3200);
+      '已开始或已完成：' + names.map(escHtml).join('、'), 3200);
   }
 
   document.getElementById('taskBatchDeleteBtn').addEventListener('click', function() {
@@ -1216,7 +1222,7 @@
     document.querySelector('#taskDeleteOverlay .confirm-title').textContent =
       names.length > 1 ? '确认批量删除' : '确认删除';
     document.getElementById('taskDeleteMsg').innerHTML =
-      '确定删除以下 ' + names.length + ' 个任务？<br><span style="color:var(--fg);font-weight:500">' + names.join('、') + '</span>';
+      '确定删除以下 ' + names.length + ' 个任务？<br><span style="color:var(--fg);font-weight:500">' + escHtml(names.join('、')) + '</span>';
     taskDeleteOverlay.classList.add('open');
   });
 
@@ -1272,22 +1278,22 @@
 
   /* ═══════════ 数据导出：勾选任务覆盖的全部人员 ═══════════ */
   document.getElementById('taskExportBtn').addEventListener('click', function() {
-    var checked = Array.prototype.slice.call(taskTableBody.querySelectorAll('.task-check:checked'));
-    if (checked.length === 0) {
+    var ids = selectedTaskIds();
+    if (ids.length === 0) {
       showMessage('task-export-warn', 'warning', '请选择需要导出的任务', 3000);
       return;
     }
 
-    var selectedIds = checked.map(function(cb) { return parseInt(cb.getAttribute('data-task-id'), 10); });
-    var selectedTasks = tasks.filter(function(t) { return selectedIds.indexOf(t.id) !== -1; });
+    var exportTasks = tasks.filter(function(t) { return ids.indexOf(String(t.id)) !== -1; });
 
     function esc(v) {
       var str = String(v == null ? '' : v);
-      return /[",\n]/.test(str) ? '"' + str.replace(/"/g, '""') + '"' : str;
+      if (/^[=+\-@\t\r]/.test(str)) str = "'" + str;
+      return /[",\r\n]/.test(str) ? '"' + str.replace(/"/g, '""') + '"' : str;
     }
 
     var lines = ['任务名,任务类型,任务周期,健康ID,学号,人员姓名,性别,年级班级,状态'];
-    selectedTasks.forEach(function(task) {
+    exportTasks.forEach(function(task) {
       students.filter(function(s) { return task.classes.indexOf(s.class) !== -1; }).forEach(function(s) {
         lines.push([
           esc(task.name),
@@ -1556,7 +1562,7 @@
     openRemoveConfirm(
       keys,
       '确认批量移除',
-      '确定移除以下 ' + names.length + ' 名人员？<br><span style="color:var(--fg);font-weight:500">' + names.join('、') + '</span>',
+      '确定移除以下 ' + names.length + ' 名人员？<br><span style="color:var(--fg);font-weight:500">' + names.map(escHtml).join('、') + '</span>',
       '移除'
     );
   });
@@ -1877,7 +1883,7 @@
     document.querySelector('#taskDeleteOverlay .confirm-title').textContent = '确认删除';
     document.getElementById('taskDeleteMsg').innerHTML =
       '确定删除任务「<span style="color:var(--fg);font-weight:500">' +
-      document.getElementById('createName').value +
+      escHtml(document.getElementById('createName').value) +
       '</span>」？<br>删除后不可恢复，请谨慎操作。';
     taskDeleteOverlay.classList.add('open');
   });

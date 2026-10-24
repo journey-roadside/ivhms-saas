@@ -857,7 +857,7 @@
   /* ─── 全局同步（带频率限制） ─────────────────────────────────── */
   function formatSyncTime(){
     var d = new Date();
-    return '最近同步：' + d.getFullYear() + '-' + String(d.getDate()).padStart(2,'0') + '-' + String(d.getMonth()+1).padStart(2,'0') + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0') + ':' + String(d.getSeconds()).padStart(2,'0');
+    return '最近同步：' + d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0') + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0') + ':' + String(d.getSeconds()).padStart(2,'0');
   }
   var syncTimestamps = [];
   var isRateLimited = false;
