@@ -227,6 +227,10 @@
     .device-grid{grid-template-columns:repeat(3,1fr)}
     .content{padding:32px 48px}
   }
+  /* 801-1024 侧栏转为抽屉，内容区变宽，底部两张图表卡改为整行单列 */
+  @media(min-width:801px) and (max-width:1024px){
+    .bottom-row{grid-template-columns:1fr}
+  }
 
   /* ─── page footer ────────────────────────────────────────── */
   .page-footer{margin-top:auto;padding:16px 32px;text-align:center;font-size:12px;color:var(--muted-light)}
@@ -452,9 +456,11 @@
   .org-detail-item{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
   .org-detail-label{font-size:13px;font-weight:400;color:var(--muted)}
   .org-detail-value{font-size:14px;color:var(--fg);line-height:1.5;padding:10px 0}
-  .license-link{color:var(--accent-deep);cursor:pointer;font-size:14px;font-weight:500;text-decoration:none;transition:color .15s;background:none;border:none;font-family:var(--font-body);padding:10px 0;display:inline-flex;align-items:center;gap:6px;text-align:left}
-  .license-link:hover{color:var(--accent)}
-  .license-download-icon{width:16px;height:16px;flex-shrink:0}
+  .regcode-row{display:flex;align-items:center;gap:8px;padding:10px 0}
+  .regcode-value{font-size:14px;color:var(--fg);line-height:1.5;letter-spacing:.5px;font-variant-numeric:tabular-nums}
+  .regcode-btn{width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;border-radius:var(--radius-sm);border:none;background:none;color:var(--muted-light);cursor:pointer;padding:0;flex-shrink:0;transition:background .15s,color .15s}
+  .regcode-btn:hover{background:rgba(0,0,0,0.05);color:var(--fg)}
+  .regcode-btn svg{width:16px;height:16px}
   .org-tabs{display:flex;gap:24px;border-bottom:1px solid var(--border-md);padding-bottom:0;margin-bottom:20px}
   .org-tab{font-size:16px;font-weight:500;color:var(--muted);cursor:pointer;padding-bottom:20px;border-bottom:2px solid transparent;transition:color .15s,border-color .15s;background:none;border-top:none;border-left:none;border-right:none;font-family:var(--font-body)}
   .org-tab:hover{color:var(--fg)}
@@ -462,6 +468,7 @@
   .org-tab-content{display:none}
   .org-tab-content.active{display:block}
   .status-badge-active{font-size:14px;color:#00d4a4;font-weight:500;padding:10px 0;display:inline-block}
+  .device-badges{display:flex;align-items:center;gap:32px;flex-wrap:wrap}
   .settings-card-title{font-family:var(--font-display);font-size:20px;font-weight:400;letter-spacing:-0.16px;margin-bottom:28px}
 
   /* ─── org tree table ──────────────────────────────────────── */
@@ -521,7 +528,7 @@
   .dialog-form-value{font-size:14px;color:var(--fg);padding:10px 0;line-height:1.5}
   
 </style>
-<script src="vendor/chart.umd.min.js"></script>
+<script src="js/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -548,6 +555,10 @@
     <a class="sidebar-item" href="health-records.html">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
       健康档案
+    </a>
+    <a class="sidebar-item" href="task-management.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path></svg>
+      任务管理
     </a>
     <a class="sidebar-item" href="device-status.html">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
@@ -870,7 +881,7 @@
 
       <!-- 第二块：机构授权信息 -->
       <div class="settings-card" style="margin-top:24px">
-        <div class="settings-card-title">机构授权</div>
+        <div class="settings-card-title">授权信息</div>
         <div class="org-detail-grid">
           <div class="org-detail-col">
             <div class="org-detail-item">
@@ -878,11 +889,16 @@
               <div class="org-detail-value">E245575895</div>
             </div>
             <div class="org-detail-item">
-              <label class="org-detail-label">License文件</label>
-              <button class="license-link" id="licenseDownloadLink" title="点击下载">
-                <svg class="license-download-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                license_E245575895.lic
-              </button>
+              <label class="org-detail-label">注册码</label>
+              <div class="regcode-row">
+                <span class="regcode-value" id="regCodeValue">••••-••••-••••-••••</span>
+                <button class="regcode-btn" id="regCodeToggle" title="显示注册码">
+                  <svg id="regCodeEye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                </button>
+                <button class="regcode-btn" id="regCodeCopy" title="复制注册码">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"></rect><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path></svg>
+                </button>
+              </div>
             </div>
           </div>
           <div class="org-detail-col">
@@ -892,7 +908,10 @@
             </div>
             <div class="org-detail-item">
               <label class="org-detail-label">设备激活</label>
-              <div class="status-badge-active">已激活（1/2）</div>
+              <div class="device-badges">
+                <div class="status-badge-active">终端设备（1/2）</div>
+                <div class="status-badge-active">训练设备（40/50）</div>
+              </div>
             </div>
           </div>
         </div>
@@ -1765,28 +1784,27 @@
   });
 
   /* ─── account settings button ─────────────────────────────── */
+  /* hash 路由：其他页面的用户菜单直接 href 到 index.html#profile / #admin；消息面板直达 #messages */
+  function routeFromHash() {
+    if (location.hash === '#profile') showSettings();
+    else if (location.hash === '#admin') showOrgPage();
+    else if (location.hash === '#messages') showMsgPage();
+    else showOverview();
+  }
+
   var accountSettingsItem = userPanel.querySelectorAll('.user-menu-item')[0];
   accountSettingsItem.addEventListener('click', function() {
     showSettings();
+    location.hash = 'profile';
   });
 
   var orgManageItem = userPanel.querySelectorAll('.user-menu-item')[1];
   orgManageItem.addEventListener('click', function() {
     showOrgPage();
+    location.hash = 'admin';
   });
 
-  /* ─── clear all messages ──────────────────────────────────── */
-  document.getElementById('msgClearBtn').addEventListener('click', function() {
-    var list = document.getElementById('msgList');
-    list.innerHTML = '';
-    var badge = document.getElementById('sidebarMsgBadge');
-    if (badge) {
-      badge.textContent = '0';
-      badge.style.display = 'none';
-    }
-    var empty = document.getElementById('msgEmpty');
-    if (empty) empty.style.display = '';
-  });
+  window.addEventListener('hashchange', routeFromHash);
 
   /* ─── mark message as read on click ──────────────────────── */
   document.getElementById('msgList').addEventListener('click', function(e) {
@@ -2018,6 +2036,40 @@
       saveBtn.textContent = '保存';
       saveBtn.style.background = '';
     }, 1500);
+  });
+
+  /* ─── 注册码：默认脱敏，可切换显示 / 复制 ──────────────── */
+  var REG_CODE = 'IVHM-8K2P-7QX4-9ZTR';
+  var MASKED_CODE = '••••-••••-••••-••••';
+  var regCodeValue = document.getElementById('regCodeValue');
+  var regCodeToggle = document.getElementById('regCodeToggle');
+  var regCodeRevealed = false;
+
+  regCodeToggle.addEventListener('click', function() {
+    regCodeRevealed = !regCodeRevealed;
+    regCodeValue.textContent = regCodeRevealed ? REG_CODE : MASKED_CODE;
+    regCodeToggle.title = regCodeRevealed ? '隐藏注册码' : '显示注册码';
+    document.getElementById('regCodeEye').style.opacity = regCodeRevealed ? '1' : '.6';
+  });
+
+  document.getElementById('regCodeCopy').addEventListener('click', function() {
+    function done() { showMessage('regcode-copy-success', 'success', '复制成功', 2000); }
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(REG_CODE).then(done, fallback);
+    } else {
+      fallback();
+    }
+    // file:// 等非安全上下文下 clipboard API 不可用
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = REG_CODE;
+      ta.style.cssText = 'position:fixed;opacity:0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch (e) {}
+      ta.remove();
+      done();
+    }
   });
 
   /* ─── org management form ────────────────────────────────── */
@@ -3175,6 +3227,8 @@
     }
   });
 
+  // 末尾执行：等管理后台依赖的数据与渲染函数就绪后再按 hash 进入
+  routeFromHash();
 })();
 
 /* ─── login log mock data ───────────────────────────────── */
@@ -3234,6 +3288,9 @@
   };
 })();
 </script>
-</div></body></html>
+</div>
+<script src="js/msg-badge.js"></script>
+<script src="js/sidebar-toggle.js"></script>
+</body></html>
 
 

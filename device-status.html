@@ -254,6 +254,10 @@
   @media(max-width:600px){
     .summary-row{grid-template-columns:1fr}
   }
+  /* 801-1024 侧栏转为抽屉，内容区变宽，下方终端/训练设备表格卡改为整行单列 */
+  @media(min-width:801px) and (max-width:1024px){
+    .tables-row{grid-template-columns:1fr}
+  }
 </style>
 </head>
 <body>
@@ -279,6 +283,10 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
       健康档案
     </a>
+    <a class="sidebar-item" href="task-management.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path></svg>
+      任务管理
+    </a>
     <a class="sidebar-item active" href="device-status.html">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
       设备状态
@@ -292,6 +300,7 @@
     <div class="sidebar-bottom-actions">
       <div class="sidebar-bottom-btn" id="sidebarMsgBtn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 01-3.46 0"></path></svg>
+        <span class="sidebar-msg-badge" id="sidebarMsgBadge">5</span>
       </div>
       <div class="sidebar-bottom-btn" id="sidebarHelpBtn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
@@ -305,11 +314,11 @@
 
   <!-- 用户下拉菜单（独立浮层） -->
   <div class="sidebar-user-dropdown" id="userPanel">
-    <a class="user-menu-item" href="index.html">
+    <a class="user-menu-item" href="index.html#profile">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
       个人中心
     </a>
-    <a class="user-menu-item" href="index.html">
+    <a class="user-menu-item" href="index.html#admin">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
       管理后台
     </a>
@@ -596,17 +605,6 @@
     if (e.target === logoutOverlay) logoutOverlay.classList.remove('open');
   });
 
-  /* ─── message panel: clear all ──────────────────────────────── */
-  var msgClearBtn = document.getElementById('msgClearBtn');
-  if (msgClearBtn) {
-    msgClearBtn.addEventListener('click', function() {
-      var list = document.getElementById('msgList');
-      list.innerHTML = '';
-      var empty = document.getElementById('msgEmpty');
-      if (empty) empty.style.display = '';
-    });
-  }
-
   /* ─── message panel: mark as read on click ──────────────────── */
   var msgList = document.getElementById('msgList');
   if (msgList) {
@@ -624,7 +622,7 @@
   if (msgViewAll) {
     msgViewAll.addEventListener('click', function() {
       closeAll();
-      window.location.href = 'index.html';
+      window.location.href = 'index.html#messages';
     });
   }
 
@@ -922,4 +920,6 @@
   recordSyncTrigger();
   doGlobalSync(true);
 </script>
+<script src="js/msg-badge.js"></script>
+<script src="js/sidebar-toggle.js"></script>
 </body></html>

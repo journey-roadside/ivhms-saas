@@ -11,6 +11,7 @@ desktop.ini
 .workbuddy/
 Python/
 test/
+.claude/
 
 # IDE
 .idea/

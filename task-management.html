@@ -1,0 +1,2062 @@
+<!doctype html>
+<html lang="zh-CN"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>视力健康管理平台 · 任务管理</title>
+<style>
+  :root {
+    --bg:          #f7f7f7;
+    --surface:     #ffffff;
+    --fg:          #0a0a0a;
+    --muted:       #5a5a5c;
+    --muted-light: #888888;
+    --border:      #e5e5e5;
+    --border-md:   #ededed;
+    --accent:      #00d4a4;
+    --accent-deep: #0d0d0d;
+    --accent-light:#7cebcb;
+    --error:       #d45656;
+    --error-light: #fde8e8;
+    --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --font-body:    'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+    --radius-xs: 4px; --radius-sm: 6px; --radius-md: 8px; --radius-lg: 12px; --radius-xl: 16px; --radius-xxl: 24px; --radius-pill: 9999px;
+    --shadow-card: rgba(0,0,0,0.03) 0 2px 4px; --shadow-btn: rgba(0,0,0,0.06) 0 1px 2px;
+    --sidebar-w: 240px;
+    --header-h: 56px;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:16px;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;scrollbar-width:none;-ms-overflow-style:none}
+  html::-webkit-scrollbar{display:none}
+  body{font-family:var(--font-body);color:var(--fg);background:var(--bg);min-height:100vh;display:flex;line-height:1.5}
+
+  /* ─── sidebar ────────────────────────────────────────────── */
+  .sidebar{width:var(--sidebar-w);background:var(--fg);color:#fff;display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;transition:transform .3s}
+  .sidebar-logo{padding:16px 20px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,0.08)}
+  .sidebar-logo-icon{width:32px;height:32px;border-radius:var(--radius-md);background:var(--accent);display:flex;align-items:center;justify-content:center}
+  .sidebar-logo-icon svg{width:16px;height:16px;color:var(--fg)}
+  .sidebar-logo-text{font-family:var(--font-display);font-size:15px;font-weight:600;letter-spacing:-0.01em}
+  .sidebar-nav{padding:8px 0;flex:1}
+  .sidebar-item{display:flex;align-items:center;gap:12px;padding:10px 20px;font-size:14px;color:rgba(255,255,255,0.6);cursor:pointer;transition:color .15s,background .15s;border-radius:0;position:relative;text-decoration:none}
+  .sidebar-item:hover{color:rgba(255,255,255,0.9);background:rgba(255,255,255,0.04)}
+  .sidebar-item.active{color:#fff;background:rgba(0,212,164,0.12)}
+  .sidebar-item.active::before{content:'';position:absolute;left:0;top:4px;bottom:4px;width:3px;background:var(--accent);border-radius:0 2px 2px 0}
+  .sidebar-item svg{width:18px;height:18px;flex-shrink:0}
+  .sidebar-bottom{padding:16px 20px;border-top:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between}
+  .sidebar-user{display:flex;align-items:center;gap:10px;cursor:pointer;transition:opacity .15s}
+  .sidebar-user:hover{opacity:.9}
+  .sidebar-avatar{width:28px;height:28px;border-radius:var(--radius-pill);background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--fg)}
+  .sidebar-username{font-size:13px;color:#fff;font-weight:500}
+  .sidebar-bottom-actions{display:flex;align-items:center;gap:8px}
+  .sidebar-bottom-btn{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:var(--radius-md);cursor:pointer;color:rgba(255,255,255,0.6);transition:background .15s,color .15s;position:relative}
+  .sidebar-bottom-btn:hover{background:rgba(255,255,255,0.08);color:#fff}
+  .sidebar-bottom-btn svg{width:18px;height:18px}
+  .sidebar-msg-badge{position:absolute;top:-2px;right:-4px;background:var(--accent);color:var(--fg);font-size:10px;font-weight:700;padding:1px 5px;border-radius:var(--radius-pill);min-width:16px;text-align:center;line-height:1.4}
+
+  /* ─── main layout ────────────────────────────────────────── */
+  .main-wrap{flex:1;min-width:0;margin-left:var(--sidebar-w);display:flex;flex-direction:column;min-height:100vh}
+  .content{flex:1;padding:24px 32px}
+  .content-title{font-family:var(--font-display);font-size:22px;font-weight:600;letter-spacing:-0.3px;margin-bottom:24px;color:var(--fg)}
+  .content-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+  .content-header .content-title{margin-bottom:0}
+
+  /* ─── sidebar floating panels ─────────────────────────────── */
+  .sidebar-user-dropdown{position:fixed;left:20px;width:var(--sidebar-w);bottom:60px;z-index:200;display:none;opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;background:var(--fg);border:1px solid rgba(255,255,255,0.12);border-radius:var(--radius-lg);box-shadow:0 8px 32px rgba(0,0,0,0.5),0 2px 8px rgba(0,0,0,0.3)}
+  .sidebar-user-dropdown.open{display:block;opacity:1;transform:translateY(0)}
+  .sidebar-msg-panel{position:fixed;left:20px;width:360px;max-width:calc(100vw - 32px);bottom:60px;z-index:200;display:none;opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;background:var(--fg);border:1px solid rgba(255,255,255,0.12);border-radius:var(--radius-lg);box-shadow:0 8px 32px rgba(0,0,0,0.5),0 2px 8px rgba(0,0,0,0.3)}
+  .sidebar-msg-panel.open{display:block;opacity:1;transform:translateY(0)}
+  .sidebar-user-dropdown .user-menu-item{color:#fff;display:flex;align-items:center;gap:10px;padding:10px 16px;font-size:13px;cursor:pointer;transition:background .15s;text-decoration:none}
+  .sidebar-user-dropdown .user-menu-item:hover{background:rgba(255,255,255,0.08)}
+  .sidebar-user-dropdown .user-menu-item svg{width:16px;height:16px;color:rgba(255,255,255,0.55);flex-shrink:0}
+  .sidebar-user-dropdown .user-menu-item.danger{color:#ef4444}
+  .sidebar-user-dropdown .user-menu-item.danger svg{color:#ef4444}
+  .sidebar-user-dropdown .user-menu-divider{height:1px;background:rgba(255,255,255,0.08);margin:4px 12px}
+  .msg-empty{text-align:center;padding:32px 16px;display:flex;flex-direction:column;align-items:center;gap:8px}
+  .msg-empty-icon{color:rgba(255,255,255,0.3)}
+  .msg-empty-icon svg{width:36px;height:36px}
+  .msg-empty-text{font-size:13px;color:rgba(255,255,255,0.5)}
+  .msg-header{display:flex;align-items:center;justify-content:space-between;padding:16px;border-bottom:1px solid rgba(255,255,255,0.08)}
+  .msg-header-title{font-family:var(--font-display);font-size:14px;font-weight:600;color:#fff}
+  .msg-clear-btn{font-size:12px;color:var(--accent);cursor:pointer;font-weight:500;border:none;background:none;font-family:var(--font-body)}
+  .msg-clear-btn:hover{color:#fff}
+  .msg-list{max-height:320px;overflow-y:auto}
+  .msg-list::-webkit-scrollbar{width:4px}
+  .msg-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.15);border-radius:4px}
+  .msg-item{padding:12px 10px;border-bottom:1px solid rgba(255,255,255,0.06);cursor:pointer;transition:background .15s}
+  .msg-item:hover{background:rgba(255,255,255,0.06)}
+  .msg-item:last-child{border-bottom:none}
+  .msg-item-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+  .msg-item-title{font-size:13px;font-weight:500;color:#fff;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .msg-item-time{font-size:11px;color:rgba(255,255,255,0.4)}
+  .msg-item-type{font-size:12px;color:rgba(255,255,255,0.55)}
+  .msg-footer{padding:12px 16px;border-top:1px solid rgba(255,255,255,0.08);text-align:center;font-size:13px;color:var(--accent);cursor:pointer;font-weight:500}
+  .msg-footer:hover{color:#fff}
+
+  /* ─── confirm dialog ──────────────────────────────────────── */
+  .confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:999;display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;transition:opacity .2s,visibility .2s}
+  .confirm-overlay.open{opacity:1;visibility:visible}
+  .confirm-box{background:var(--surface);border-radius:var(--radius-lg);padding:24px;width:360px;max-width:90vw;box-shadow:rgba(0,0,0,0.12) 0 16px 48px}
+  .confirm-title{font-family:var(--font-display);font-size:16px;font-weight:600;margin-bottom:8px}
+  .confirm-msg{font-size:14px;color:var(--muted);margin-bottom:40px;line-height:1.6}
+  .confirm-actions{display:flex;gap:12px;justify-content:flex-end}
+  .confirm-btn{padding:8px 20px;font-size:14px;font-weight:500;border-radius:var(--radius-pill);cursor:pointer;font-family:var(--font-body);transition:background .2s}
+  .confirm-btn-cancel{background:var(--bg);color:var(--fg);border:1px solid var(--border-md)}
+  .confirm-btn-cancel:hover{background:rgba(0,0,0,0.06)}
+  .confirm-btn-danger{background:#ef4444;color:#fff;border:none}
+  .confirm-btn-danger:hover{background:#dc2626}
+
+  .btn-primary{padding:12px 24px;font-size:14px;font-weight:500;border-radius:var(--radius-pill);cursor:pointer;font-family:var(--font-body);background:var(--fg);color:#fff;border:none;transition:background .2s,opacity .2s,transform .1s,box-shadow .2s;box-shadow:var(--shadow-btn)}
+  .btn-primary:hover:not(:disabled){background:#1a1a1a}
+  .btn-primary:active:not(:disabled){transform:scale(.985);box-shadow:none}
+  .btn-primary:disabled{background:rgba(0,0,0,.08);color:var(--muted-light);cursor:not-allowed;box-shadow:none}
+  .btn-secondary{padding:12px 28px;font-size:14px;font-weight:500;border-radius:var(--radius-pill);cursor:pointer;font-family:var(--font-body);background:var(--surface);color:var(--fg);border:1.5px solid var(--border-md);transition:background .2s,transform .1s;display:inline-flex;align-items:center;gap:8px}
+  .btn-secondary:hover{background:var(--bg)}
+  .btn-secondary:active{transform:scale(.985)}
+
+  /* ─── cards / forms / tables ─────────────────────────────── */
+  .settings-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:32px;box-shadow:var(--shadow-card)}
+  .form-label{display:flex;align-items:baseline;font-size:13px;font-weight:600;color:var(--fg);margin-bottom:8px}
+  .form-label .required{color:var(--error);font-size:13px;margin-left:4px}
+  /* 任务周期：开始 / 至 / 结束 合为一个控件 */
+  .date-range{display:flex;align-items:center;gap:10px}
+  .date-range .form-input{flex:1;min-width:0}
+  .date-range-sep{font-size:13px;color:var(--muted);flex-shrink:0}
+  .form-input{width:100%;height:40px;padding:0 14px;font-family:var(--font-body);font-size:15px;color:var(--fg);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);outline:none;transition:border-color .2s,box-shadow .2s}
+  .form-input::placeholder{color:var(--muted-light)}
+  .form-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,164,0.12)}
+  .form-input.error{border-color:var(--error)}
+  .form-select{width:100%;height:40px;padding:0 36px 0 14px;font-family:var(--font-body);font-size:14px;color:var(--fg);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);outline:none;transition:border-color .2s,box-shadow .2s;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23767676' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;background-size:16px}
+  .form-select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,164,0.12)}
+  /* 自定义下拉：与健康档案页一致 */
+  .custom-select-wrap{position:relative}
+  .custom-select-trigger{width:100%;height:40px;padding:0 14px;font-family:var(--font-body);font-size:14px;color:var(--fg);background:var(--surface);border:1.5px solid var(--border-md);border-radius:var(--radius-md);outline:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;transition:border-color .2s,box-shadow .2s;box-sizing:border-box}
+  .custom-select-trigger:hover{border-color:var(--accent)}
+  .custom-select-trigger.open{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,164,0.12)}
+  .custom-select-trigger.error{border-color:var(--error)}
+  .custom-select-trigger.error.open{border-color:var(--error);box-shadow:0 0 0 3px rgba(212,86,86,0.12)}
+  .custom-select-trigger svg{width:16px;height:16px;color:var(--muted-light);flex-shrink:0;transition:transform .2s;margin-left:8px}
+  .custom-select-trigger.open svg{transform:rotate(180deg)}
+  .custom-select-trigger .cs-placeholder{color:var(--muted-light)}
+  .custom-select-trigger.xs{height:32px;padding:0 28px 0 10px;font-size:13px;white-space:nowrap}
+  .custom-select-trigger.xs svg{width:14px;height:14px;margin-left:6px}
+  .custom-select-trigger.up svg{transform:rotate(180deg)}
+  .custom-select-trigger.up.open svg{transform:rotate(0deg)}
+  .custom-select-menu{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--surface);border:1px solid var(--border-md);border-radius:var(--radius-md);box-shadow:0 8px 24px rgba(0,0,0,0.1);z-index:20;max-height:220px;overflow-y:auto;display:none}
+  .custom-select-menu.up{top:auto;bottom:calc(100% + 4px)}
+  .custom-select-menu.open{display:block}
+  .custom-select-item{padding:10px 14px;font-size:14px;color:var(--fg);cursor:pointer;transition:background .15s}
+  .custom-select-item.xs{font-size:12px;padding:6px 10px}
+  .custom-select-item:hover{background:rgba(0,212,164,0.08)}
+  .custom-select-item.selected{background:rgba(0,212,164,0.12);font-weight:500}
+  .form-error{font-size:12px;color:var(--error);margin-top:6px;display:none}
+  .form-error.show{display:block}
+    /* 搜索框固定 600px，空间不足时自动收缩；右侧两个下拉宽度不变；按钮紧随状态下拉，不贴最右 */
+  .filter-row{display:grid;grid-template-columns:minmax(0,600px) 200px 200px max-content;gap:12px;align-items:center;margin-bottom:24px}
+  .filter-row-student{grid-template-columns:1fr 200px auto}
+  .filter-row-create{grid-template-columns:1fr 1fr 1fr 1fr auto}
+  .filter-actions{display:flex;gap:12px;align-items:center;justify-self:end}
+  /* 查询/重置等宽，两页一致 */
+  .filter-actions .btn-primary,.filter-actions .btn-secondary{min-width:96px;justify-content:center}
+  .header-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .header-actions .btn-outline,.header-actions .btn-primary{white-space:nowrap}
+  .record-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+  .btn-outline{padding:8px 20px;font-size:14px;font-weight:500;border-radius:var(--radius-pill);cursor:pointer;font-family:var(--font-body);background:var(--surface);color:var(--fg);border:1px solid var(--border-md);transition:background .15s;display:inline-flex;align-items:center;gap:6px}
+  .btn-outline:hover{background:rgba(0,0,0,0.06)}
+  .btn-danger-text{color:#ef4444;border-color:#ef4444}
+  .btn-danger-text:hover{background:rgba(239,68,68,0.08)}
+  .btn-outline svg{width:16px;height:16px}
+  .card-table-wrap{overflow-x:auto}
+  .member-table{width:100%;min-width:100%;border-collapse:collapse;font-size:14px;table-layout:auto}
+  /* 窄屏时改为横向滚动，避免列被压成竖排文字 */
+  .task-table{min-width:960px}
+  .task-table th,.task-table td{white-space:nowrap}
+  .task-table .progress-cell{min-width:180px}
+  /* 任务列表第 2 列是任务名称，需要更宽；任务人员表不适用 */
+  .task-list-table td:nth-child(2){min-width:230px;white-space:normal}
+  /* 任务人员表：各列按内容取宽，避免健康ID等被均分拉得过宽 */
+  /* 任务人员表：除勾选列与操作列外，其余列均分宽度 */
+  .member-list-table{table-layout:fixed}
+  .member-list-table th:last-child,.member-list-table td:last-child{width:100px;text-align:right}
+  .member-table th{padding:12px 14px;text-align:left;font-weight:700;color:#000;font-size:14px;border-bottom:1px solid var(--border-md)}
+  .member-table td{padding:12px 14px;border-bottom:1px solid #F2F2F2;color:var(--fg)}
+  .member-table th:last-child,.member-table td:last-child{text-align:right;padding-right:20px}
+  .member-table.no-action th:last-child,.member-table.no-action td:last-child{text-align:left;padding-right:14px}
+  .member-table tbody tr:hover{background:rgba(0,212,164,.03)}
+  .member-action{color:#00d4a4;cursor:pointer;font-size:13px;font-weight:500;border:none;background:none;padding:0;font-family:var(--font-body)}
+  .member-action.member-action-danger{color:#ef4444}
+  .member-action:hover{opacity:.8}
+  /* 移除人员气泡确认框 */
+  .member-popover{position:fixed;z-index:1000;background:var(--surface);border:1px solid var(--border-md);border-radius:var(--radius-md);box-shadow:0 8px 24px rgba(0,0,0,0.12);padding:12px 14px;min-width:200px;display:none}
+  .member-popover.open{display:block}
+  .member-popover-msg{font-size:13px;color:var(--fg);margin-bottom:10px}
+  .member-popover-actions{display:flex;gap:8px;justify-content:flex-end}
+  .record-pagination-row{display:flex;align-items:center;justify-content:space-between;margin-top:32px;gap:16px;flex-wrap:wrap}
+  .record-count{font-size:13px;color:var(--muted-light);white-space:nowrap}
+  .page-size-select{height:32px;padding:0 28px 0 10px;font-family:var(--font-body);font-size:13px;color:var(--fg);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);outline:none;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23767676' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;background-size:14px;cursor:pointer}
+  .member-pagination{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .member-page-btn{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:var(--radius-md);font-size:13px;font-weight:500;cursor:pointer;font-family:var(--font-body);border:1px solid var(--border-md);background:var(--surface);color:var(--fg);transition:background .15s,border-color .15s}
+  .member-page-btn:hover{background:var(--bg)}
+  .member-page-btn.active{background:var(--fg);color:#fff;border-color:var(--fg)}
+  .member-page-btn:disabled{opacity:.4;cursor:not-allowed}
+  .status-badge{display:inline-flex;align-items:center;padding:4px 12px;border-radius:var(--radius-pill);font-size:12px;font-weight:500;white-space:nowrap}
+  .status-badge.st-pending{background:rgba(0,0,0,.05);color:var(--muted)}
+  .status-badge.st-active{background:var(--accent-light);color:var(--accent-deep)}
+  .status-badge.st-done{background:#e6f4ff;color:#1677ff}
+  .status-badge.st-retest{background:#fef3c7;color:#d97706}
+  .row-checkbox,.check-all{width:16px;height:16px;cursor:pointer;accent-color:var(--accent-deep)}
+
+  /* ─── breadcrumbs ──────────────────────────────────────────── */
+  .breadcrumbs{display:flex;align-items:center;gap:8px;padding:0 0 24px;font-family:var(--font-display);font-size:22px;font-weight:600;letter-spacing:-0.3px;color:var(--fg);min-width:0}
+  /* 上级面包屑不压缩，末级标题独占剩余空间 */
+  .breadcrumbs-item:not(.active){flex-shrink:0;white-space:nowrap}
+  .breadcrumbs-item.active{flex-shrink:1}
+  .breadcrumbs-sep{flex-shrink:0}
+  /* 任务名可能较长，末级标题单行省略 */
+  .breadcrumbs-item.active{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+  .breadcrumbs-item{cursor:pointer;transition:color .15s;color:var(--muted);font-weight:400}
+  .breadcrumbs-item:hover{color:var(--fg)}
+  .breadcrumbs-item.active{color:var(--fg);font-weight:600;cursor:default}
+  .breadcrumbs-sep{color:var(--muted-light);font-size:12px}
+
+  /* ─── task views ───────────────────────────────────────────── */
+  .task-view{display:none}
+  .task-view.active{display:block}
+  .type-badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:var(--radius-pill);font-size:12px;font-weight:500;background:rgba(0,0,0,.05);color:var(--muted);white-space:nowrap}
+  .type-badge.t-detect{background:rgba(0,212,164,.12);color:#07806a}
+  .type-badge.t-train{background:rgba(22,119,255,.1);color:#1677ff}
+
+  .progress-cell{display:flex;align-items:center;gap:10px;min-width:150px;max-width:320px}
+  .progress-track{flex:1;height:6px;background:rgba(0,0,0,.06);border-radius:3px;overflow:hidden;min-width:60px}
+  .progress-fill{height:100%;background:var(--accent);border-radius:3px;transition:width .3s}
+  .progress-text{font-size:13px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+
+  .summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:24px}
+  .summary-item{display:flex;flex-direction:column;gap:6px}
+  .summary-label{font-size:13px;color:var(--muted)}
+  .summary-value{font-size:15px;color:var(--fg);font-weight:500}
+  .section-title{font-family:var(--font-display);font-size:16px;font-weight:600;margin-bottom:20px}
+  .card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+  .task-card + .task-card{margin-top:24px}
+
+  /* ─── create form ──────────────────────────────────────────── */
+  .form-row-2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  .form-group{margin-bottom:24px}
+  .radio-group{display:flex;gap:12px}
+  .radio-chip{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border:1.5px solid var(--border-md);border-radius:var(--radius-pill);cursor:pointer;font-size:14px;transition:border-color .15s,background .15s}
+  .radio-chip:hover{border-color:var(--accent)}
+  .radio-chip input{accent-color:var(--accent-deep);cursor:pointer}
+  .radio-chip.checked{border-color:var(--accent);background:rgba(0,212,164,.06)}
+  .create-actions{display:flex;gap:12px;justify-content:flex-end;margin-top:32px;padding-top:24px;border-top:1px solid var(--border)}
+  /* 新建任务底部固定操作栏 */
+  .create-action-bar{position:fixed;left:var(--sidebar-w);right:0;bottom:0;z-index:90;display:flex;gap:12px;justify-content:flex-end;align-items:center;padding:16px 32px;background:var(--surface);border-top:1px solid var(--border-md);box-shadow:0 -2px 8px rgba(0,0,0,0.04)}
+  /* 为固定栏留出空间，避免遮挡内容 */
+  #taskCreateView{padding-bottom:88px}
+
+  /* ─── 穿梭框 modal ─────────────────────────────────────────── */
+  .transfer-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:999;display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;transition:opacity .2s,visibility .2s}
+  .transfer-overlay.open{opacity:1;visibility:visible}
+  .transfer-box{background:var(--surface);border-radius:var(--radius-lg);width:900px;max-width:94vw;max-height:86vh;display:flex;flex-direction:column;box-shadow:rgba(0,0,0,0.12) 0 16px 48px}
+  .transfer-header{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--border-md)}
+  .transfer-title{font-family:var(--font-display);font-size:16px;font-weight:600}
+  .transfer-close{width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:var(--radius-md);cursor:pointer;color:var(--muted);border:none;background:none;transition:background .15s}
+  .transfer-close:hover{background:var(--bg);color:var(--fg)}
+  .transfer-close svg{width:18px;height:18px}
+  .transfer-search{padding:16px 24px 0}
+  .transfer-search .form-input{height:36px;font-size:14px}
+  .transfer-body{flex:1;display:flex;align-items:stretch;gap:16px;padding:16px 24px;min-height:0;overflow:hidden}
+  .transfer-panel{flex:1;border:1px solid var(--border-md);border-radius:var(--radius-md);display:flex;flex-direction:column;min-width:0;overflow:hidden}
+  .transfer-panel-head{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border-md);background:var(--bg);font-size:13px;font-weight:600}
+  .transfer-panel-head .transfer-clear{font-size:12px;color:var(--muted);cursor:pointer;background:none;border:none;font-family:var(--font-body);font-weight:400}
+  .transfer-panel-head .transfer-clear:hover{color:var(--fg)}
+  .transfer-list{flex:1;overflow-y:auto;max-height:340px}
+  .transfer-item{display:flex;align-items:center;gap:10px;padding:9px 14px;font-size:13px;cursor:pointer;border-bottom:1px solid #F7F7F7;transition:background .12s}
+  .transfer-item:hover{background:rgba(0,212,164,.05)}
+  .transfer-item input{accent-color:var(--accent-deep);cursor:pointer;flex-shrink:0}
+  .transfer-item-text{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .transfer-empty{text-align:center;padding:40px 14px;font-size:13px;color:var(--muted-light)}
+  .transfer-actions{display:flex;flex-direction:column;justify-content:center;gap:8px;flex-shrink:0}
+  .transfer-arrow{width:40px;height:36px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border-md);border-radius:var(--radius-md);background:var(--surface);color:var(--fg);cursor:pointer;transition:background .15s,border-color .15s}
+  .transfer-arrow:hover:not(:disabled){background:var(--bg);border-color:var(--accent)}
+  .transfer-arrow:disabled{opacity:.35;cursor:not-allowed}
+  .transfer-arrow svg{width:16px;height:16px}
+  .transfer-footer{padding:16px 24px;border-top:1px solid var(--border-md);display:flex;gap:12px;justify-content:flex-end}
+
+
+  /* ─── drawer ──────────────────────────────────────────────── */
+  /* ─── global message ─────────────────────────────────────────── */
+  .message-container{position:fixed;top:24px;left:50%;transform:translateX(-50%);z-index:10000;display:flex;flex-direction:column;gap:12px;pointer-events:none;width:max-content;max-width:calc(100vw - 32px)}
+  .message{display:flex;align-items:flex-start;gap:10px;padding:14px 24px;border-radius:var(--radius-lg);font-size:14px;font-weight:500;font-family:var(--font-body);box-shadow:0 8px 32px rgba(0,0,0,0.12),0 2px 8px rgba(0,0,0,0.06);pointer-events:auto;opacity:0;transform:translateY(-12px);transition:opacity .3s,transform .3s;max-width:100%;white-space:normal;line-height:1.5;text-align:left}
+  .message.show{opacity:1;transform:translateY(0)}
+  .message.message-warning{background:#fff;color:var(--fg);border:1px solid var(--border-md)}
+  .message.message-warning .message-icon{color:#f59e0b}
+  .message.message-success{background:#fff;color:var(--fg);border:1px solid var(--border-md)}
+  .message.message-success .message-icon{color:var(--accent)}
+  .message-icon{display:flex;align-items:center;flex-shrink:0;margin-top:2px}
+  .message-icon svg{width:20px;height:20px}
+
+  /* ─── responsive ─────────────────────────────────────────── */
+  @media(max-width:640px){
+    .sidebar{transform:translateX(-100%)}
+    .sidebar.open{transform:translateX(0)}
+    .main-wrap{margin-left:0}
+    .create-action-bar{left:0;padding:12px 12px}
+    .content{padding:12px}
+    .confirm-box{width:calc(100vw - 32px)}
+    .filter-row{grid-template-columns:minmax(0,1fr)}
+    .filter-row-student{grid-template-columns:minmax(0,1fr)}
+    .filter-row-create{grid-template-columns:1fr 1fr}
+    .filter-row-create .filter-actions{grid-column:1/-1;justify-self:end}
+    .filter-row-create .custom-select-trigger{white-space:nowrap;padding-right:28px}
+    .filter-row-create .custom-select-trigger span{overflow:hidden;text-overflow:ellipsis}
+    .filter-actions{justify-self:stretch}
+    /* 任务人员卡片头部：标题与按钮各占一行 */
+    #taskCreateView .card-header{flex-wrap:wrap;gap:12px}
+    #taskCreateView .header-actions .btn-outline{white-space:nowrap}
+    .summary-grid{grid-template-columns:1fr 1fr}
+    .form-row-2{grid-template-columns:1fr}
+    /* 窄屏日期控件有固有最小宽度，改为上下堆叠 */
+    .date-range{flex-wrap:wrap}
+    .date-range .form-input{flex:1 1 100%}
+    .date-range-sep{display:none}
+    /* 窄屏分页：条数单独一行，页码在下方左对齐 */
+    .record-pagination-row>div:last-child{flex-wrap:wrap;gap:8px}
+    .member-pagination{order:2;width:100%}
+  }
+  @media(min-width:641px) and (max-width:800px){
+    .sidebar{transform:translateX(-100%)}
+    .sidebar.open{transform:translateX(0)}
+    .main-wrap{margin-left:0}
+    .content{padding:16px}
+    .create-action-bar{left:0;padding:16px 16px}
+    .filter-row{grid-template-columns:1fr 1fr}
+    .summary-grid{grid-template-columns:1fr 1fr}
+  }
+  @media(min-width:801px) and (max-width:1100px){
+    :root{--sidebar-w:180px}
+    .content{padding:20px}
+    .summary-grid{grid-template-columns:1fr 1fr}
+    /* 下拉保持 200px 不变，操作按钮换到第二行，腾出搜索框空间 */
+    .filter-row{grid-template-columns:1fr 200px 200px}
+    .filter-row .filter-actions{grid-column:1/-1;justify-self:end}
+  }
+  @media(min-width:1101px) and (max-width:1400px){
+    :root{--sidebar-w:220px}
+  }
+  @media(min-width:1401px){
+    :root{--sidebar-w:260px}
+    .content{padding:32px 48px}
+  }
+</style>
+</head>
+<body>
+
+<!-- 全局提示容器 -->
+<div class="message-container" id="messageContainer"></div>
+
+<!-- 侧边栏 -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="sidebar-logo-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path></svg>
+    </div>
+    <span class="sidebar-logo-text">明瞳  · IVHMS</span>
+  </div>
+  <nav class="sidebar-nav">
+    <a class="sidebar-item" href="index.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect></svg>
+      数据概览
+    </a>
+    <a class="sidebar-item" href="statistics.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+      统计分析
+    </a>
+    <a class="sidebar-item" href="health-records.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+      健康档案
+    </a>
+    <a class="sidebar-item active" href="task-management.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path></svg>
+      任务管理
+    </a>
+    <a class="sidebar-item" href="device-status.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
+      设备状态
+    </a>
+  </nav>
+  <div class="sidebar-bottom">
+    <div class="sidebar-user" id="sidebarUser">
+      <div class="sidebar-avatar">远</div>
+      <span class="sidebar-username">张明远</span>
+    </div>
+    <div class="sidebar-bottom-actions">
+      <div class="sidebar-bottom-btn" id="sidebarMsgBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 01-3.46 0"></path></svg>
+        <span class="sidebar-msg-badge" id="sidebarMsgBadge">5</span>
+      </div>
+      <div class="sidebar-bottom-btn" id="sidebarHelpBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- 主内容区 -->
+<div class="main-wrap">
+
+  <!-- 用户下拉菜单（独立浮层） -->
+  <div class="sidebar-user-dropdown" id="userPanel">
+    <a class="user-menu-item" href="index.html#profile">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+      个人中心
+    </a>
+    <a class="user-menu-item" href="index.html#admin">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+      管理后台
+    </a>
+    <div class="user-menu-divider"></div>
+    <div class="user-menu-item danger" id="logoutBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+      退出登录
+    </div>
+  </div>
+
+  <!-- 消息面板（独立浮层） -->
+  <div class="sidebar-msg-panel" id="msgPanel">
+    <div class="msg-header">
+      <span class="msg-header-title">消息通知</span>
+      <button class="msg-clear-btn" id="msgClearBtn">全部已读</button>
+    </div>
+    <div class="msg-list" id="msgList">
+      <div class="msg-item">
+        <div class="msg-item-top"><span class="msg-item-title">三年级视力筛查已完成</span><span class="msg-item-time">10:30</span></div>
+        <span class="msg-item-type">筛查通知</span>
+      </div>
+      <div class="msg-item">
+        <div class="msg-item-top"><span class="msg-item-title">训练仪 2 已离线，请检查连接</span><span class="msg-item-time">09:15</span></div>
+        <span class="msg-item-type">设备告警</span>
+      </div>
+      <div class="msg-item">
+        <div class="msg-item-top"><span class="msg-item-title">本周筛查报告已生成</span><span class="msg-item-time">昨天</span></div>
+        <span class="msg-item-type">报告通知</span>
+      </div>
+      <div class="msg-item">
+        <div class="msg-item-top"><span class="msg-item-title">新学期视力评估任务已发布</span><span class="msg-item-time">2天前</span></div>
+        <span class="msg-item-type">任务通知</span>
+      </div>
+      <div class="msg-item">
+        <div class="msg-item-top"><span class="msg-item-title">筛查终端 A 固件更新成功</span><span class="msg-item-time">3天前</span></div>
+        <span class="msg-item-type">系统通知</span>
+      </div>
+    </div>
+    <div class="msg-empty" id="msgEmpty" style="display:none">
+      <div class="msg-empty-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 01-3.46 0"></path></svg>
+      </div>
+      <span class="msg-empty-text">暂无消息</span>
+    </div>
+    <div class="msg-footer" id="msgViewAll">查看全部消息</div>
+  </div>
+
+  <!-- 内容区 -->
+  <div class="content">
+
+    <!-- ═══ 任务列表 ═══ -->
+    <div class="task-view active" id="taskListView">
+      <div class="content-title">任务管理</div>
+      <div class="settings-card">
+        <div class="record-header">
+          <div class="header-actions">
+            <button class="btn-primary" id="newTaskBtn" style="height:40px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              新建任务
+            </button>
+            <button class="btn-outline" id="taskExportBtn" style="height:40px">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              数据导出
+            </button>
+            <button class="btn-outline" id="taskBatchDeleteBtn" style="height:40px;display:none;color:#ef4444;border-color:#ef4444">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"></path><path d="M10 11v6M14 11v6"></path><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"></path></svg>
+              删除<span id="taskBatchDeleteCount"></span>
+            </button>
+          </div>
+        </div>
+        <div class="filter-row">
+          <div class="form-group" style="margin:0">
+            <input class="form-input" id="filterKeyword" type="text" placeholder="请输入任务名称" autocomplete="off">
+          </div>
+          <div class="form-group" style="margin:0">
+            <select class="form-select" id="filterType" data-trigger-text="任务类型">
+              <option value="">全部类型</option>
+              <option value="视力评估">视力评估</option>
+              <option value="视力训练">视力训练</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin:0">
+            <select class="form-select" id="filterStatus" data-trigger-text="任务状态">
+              <option value="">全部状态</option>
+              <option value="未开始">未开始</option>
+              <option value="进行中">进行中</option>
+              <option value="已完成">已完成</option>
+            </select>
+          </div>
+          <div class="filter-actions">
+            <button class="btn-primary" id="filterSearchBtn" style="height:40px">查询</button>
+            <button class="btn-secondary" id="filterResetBtn" style="height:40px">重置</button>
+            <button class="btn-secondary" id="filterRefreshBtn" style="height:40px">刷新</button>
+          </div>
+        </div>
+        <div class="card-table-wrap">
+          <table class="member-table task-table task-list-table">
+            <thead>
+              <tr>
+                <th style="width:40px;text-align:center"><input type="checkbox" class="check-all" id="taskSelectAll"></th>
+                <th>任务名称</th>
+                <th>类型</th>
+                <th>覆盖人数</th>
+                <th>开始时间</th>
+                <th>结束时间</th>
+                <th>完成进度</th>
+                <th>状态</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="taskTableBody"></tbody>
+          </table>
+        </div>
+        <div class="record-pagination-row">
+          <div class="record-count" id="taskCount"></div>
+          <div style="display:flex;align-items:center;gap:16px">
+            <select class="page-size-select" id="taskPageSize">
+              <option value="20" selected>20条/页</option>
+              <option value="50">50条/页</option>
+              <option value="100">100条/页</option>
+            </select>
+            <div class="member-pagination" id="taskPagination"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ═══ 新建 / 编辑任务 ═══ -->
+    <div class="task-view" id="taskCreateView">
+      <div class="breadcrumbs">
+        <span class="breadcrumbs-item" id="createBack">任务管理</span>
+        <span class="breadcrumbs-sep">/</span>
+        <span class="breadcrumbs-item active" id="createCrumbTitle">新建任务</span>
+      </div>
+
+      <div class="settings-card task-card">
+        <div class="form-row-2">
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label" for="createName">任务名称 <span class="required">*</span></label>
+            <input class="form-input" id="createName" type="text" maxlength="30" placeholder="请输入任务名称（最长30字）" autocomplete="off">
+            <div class="form-error" id="createNameError">请输入任务名称</div>
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label" for="createType">任务类型 <span class="required">*</span></label>
+            <select class="form-select" id="createType" data-trigger-text="请选择" data-hide-empty-option="true">
+              <option value="">请选择</option>
+              <option value="视力评估">视力评估</option>
+              <option value="视力训练">视力训练</option>
+            </select>
+            <div class="form-error" id="createTypeError">请选择任务类型</div>
+          </div>
+        </div>
+
+        <div class="form-row-2" style="margin-top:24px">
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">任务周期 <span class="required">*</span></label>
+            <div class="date-range">
+              <input class="form-input" id="createStart" type="date" aria-label="任务周期开始时间">
+              <span class="date-range-sep">至</span>
+              <input class="form-input" id="createEnd" type="date" aria-label="任务周期结束时间">
+            </div>
+            <div class="form-error" id="createPeriodError">请选择任务周期</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="settings-card task-card">
+        <div class="card-header">
+          <div class="header-actions">
+            <button class="btn-outline" id="addPersonBtn" style="height:40px">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              人员添加
+            </button>
+            <button class="btn-outline" id="addClassBtn" style="height:40px">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              班级添加
+            </button>
+            <button class="btn-outline" id="batchRemoveBtn" style="height:40px;display:none;color:#ef4444;border-color:#ef4444">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"></path><path d="M10 11v6M14 11v6"></path><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"></path></svg>
+              删除<span id="batchRemoveCount"></span>
+            </button>
+          </div>
+        </div>
+
+        <div class="filter-row filter-row-create">
+          <div class="form-group" style="margin:0">
+            <input class="form-input" id="createMemberName" type="text" placeholder="请输入姓名" autocomplete="off">
+          </div>
+          <div class="form-group" style="margin:0">
+            <input class="form-input" id="createMemberHealthId" type="text" placeholder="请输入健康ID" autocomplete="off">
+          </div>
+          <div class="form-group" style="margin:0">
+            <input class="form-input" id="createMemberNo" type="text" placeholder="请输入学号" autocomplete="off">
+          </div>
+          <div class="form-group" style="margin:0">
+            <select class="form-select" id="createMemberClass" data-trigger-text="选择班级">
+              <option value="">全部班级</option>
+            </select>
+          </div>
+          <div class="filter-actions">
+            <button class="btn-secondary" id="createMemberResetBtn" style="height:40px">重置</button>
+            <button class="btn-secondary" id="createMemberRefreshBtn" style="height:40px">刷新</button>
+          </div>
+        </div>
+
+        <div class="card-table-wrap">
+          <table class="member-table task-table member-list-table">
+            <thead>
+              <tr>
+                <th style="width:40px;text-align:center"><input type="checkbox" class="check-all" id="createMemberSelectAll"></th>
+                <th class="col-fit">健康ID</th>
+                <th class="col-fit">学号</th>
+                <th class="col-fit">年级班级</th>
+                <th class="col-fit">姓名</th>
+                <th class="col-fit">性别</th>
+                <th class="col-fit" id="createMemberStatusTh">状态</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="createMemberBody"></tbody>
+          </table>
+        </div>
+        <div class="record-pagination-row">
+          <div class="record-count" id="createMemberCount"></div>
+          <div class="member-pagination" id="createMemberPagination"></div>
+        </div>
+      </div>
+
+      <!-- 固定操作栏：不随页面滚动 -->
+      <div class="create-action-bar">
+        <button class="btn-outline btn-danger-text" id="createDeleteBtn" style="height:40px;display:none;margin-right:auto">删除任务</button>
+        <button class="btn-secondary" id="createCancelBtn">取消</button>
+        <button class="btn-primary" id="createSubmitBtn">保存提交</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- 穿梭框：添加人员 -->
+<div class="transfer-overlay" id="personTransfer">
+  <div class="transfer-box">
+    <div class="transfer-header">
+      <span class="transfer-title">人员添加</span>
+      <button class="transfer-close" id="personTransferClose">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+    <div class="transfer-search">
+      <input class="form-input" id="personSearch" type="text" placeholder="请输入姓名、健康ID或学号搜索" autocomplete="off">
+    </div>
+    <div class="transfer-body">
+      <div class="transfer-panel">
+        <div class="transfer-panel-head">
+          <span>待选人员 <span id="personLeftCount"></span></span>
+          <button class="transfer-clear" id="personLeftClear">全选</button>
+        </div>
+        <div class="transfer-list" id="personLeftList"></div>
+      </div>
+      <div class="transfer-actions">
+        <button class="transfer-arrow" id="personAddBtn" title="添加选中">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"></polyline></svg>
+        </button>
+        <button class="transfer-arrow" id="personRemoveBtn" title="移除选中">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"></polyline></svg>
+        </button>
+      </div>
+      <div class="transfer-panel">
+        <div class="transfer-panel-head">
+          <span>已选人员 <span id="personRightCount"></span></span>
+          <button class="transfer-clear" id="personRightClear">清空</button>
+        </div>
+        <div class="transfer-list" id="personRightList"></div>
+      </div>
+    </div>
+    <div class="transfer-footer">
+      <button class="btn-secondary" id="personTransferCancel">取消</button>
+      <button class="btn-primary" id="personTransferConfirm">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- 穿梭框：添加班级 -->
+<div class="transfer-overlay" id="classTransfer">
+  <div class="transfer-box" style="width:760px">
+    <div class="transfer-header">
+      <span class="transfer-title">班级添加</span>
+      <button class="transfer-close" id="classTransferClose">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+    <div class="transfer-search">
+      <input class="form-input" id="classSearch" type="text" placeholder="请输入班级名称搜索" autocomplete="off">
+    </div>
+    <div class="transfer-body">
+      <div class="transfer-panel">
+        <div class="transfer-panel-head">
+          <span>待选班级 <span id="classLeftCount"></span></span>
+          <button class="transfer-clear" id="classLeftClear">全选</button>
+        </div>
+        <div class="transfer-list" id="classLeftList"></div>
+      </div>
+      <div class="transfer-actions">
+        <button class="transfer-arrow" id="classAddBtn" title="添加选中">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"></polyline></svg>
+        </button>
+        <button class="transfer-arrow" id="classRemoveBtn" title="移除选中">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 6 9 12 15 18"></polyline></svg>
+        </button>
+      </div>
+      <div class="transfer-panel">
+        <div class="transfer-panel-head">
+          <span>已选班级 <span id="classRightCount"></span></span>
+          <button class="transfer-clear" id="classRightClear">清空</button>
+        </div>
+        <div class="transfer-list" id="classRightList"></div>
+      </div>
+    </div>
+    <div class="transfer-footer">
+      <button class="btn-secondary" id="classTransferCancel">取消</button>
+      <button class="btn-primary" id="classTransferConfirm">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- 删除任务确认 -->
+<div class="confirm-overlay" id="taskDeleteOverlay">
+  <div class="confirm-box">
+    <div class="confirm-title">确认删除</div>
+    <div class="confirm-msg" id="taskDeleteMsg"></div>
+    <div class="confirm-actions">
+      <button class="confirm-btn confirm-btn-cancel" id="taskDeleteCancel">取消</button>
+      <button class="confirm-btn confirm-btn-danger" id="taskDeleteConfirm">确认删除</button>
+    </div>
+  </div>
+</div>
+
+<!-- 移除任务人员确认 -->
+<div class="confirm-overlay" id="removeMemberOverlay">
+  <div class="confirm-box">
+    <div class="confirm-title">确认移除</div>
+    <div class="confirm-msg" id="removeMemberMsg">确定移除该人员？</div>
+    <div class="confirm-actions">
+      <button class="confirm-btn confirm-btn-cancel" id="removeMemberCancel">取消</button>
+      <button class="confirm-btn confirm-btn-danger" id="removeMemberConfirm">移除</button>
+    </div>
+  </div>
+</div>
+
+<!-- 移除人员气泡确认 -->
+<div class="member-popover" id="memberPopover">
+  <div class="member-popover-msg" id="memberPopoverMsg"></div>
+  <div class="member-popover-actions">
+    <button class="btn-secondary" id="memberPopoverCancel" style="height:32px;padding:0 14px">取消</button>
+    <button class="btn-primary" id="memberPopoverConfirm" style="height:32px;padding:0 14px;background:#ef4444">移除</button>
+  </div>
+</div>
+
+<!-- 退出登录确认对话框 -->
+<div class="confirm-overlay" id="logoutOverlay">
+  <div class="confirm-box">
+    <div class="confirm-title">确认退出</div>
+    <div class="confirm-msg">确定退出登录？</div>
+    <div class="confirm-actions">
+      <button class="confirm-btn confirm-btn-cancel" id="logoutCancel">取消</button>
+      <button class="confirm-btn confirm-btn-danger" id="logoutConfirm">退出登录</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  /* ═══════════ 侧边栏浮动面板 ═══════════ */
+  var msgPanel = document.getElementById('msgPanel');
+  var userPanel = document.getElementById('userPanel');
+  var sidebarUser = document.getElementById('sidebarUser');
+  var sidebarMsgBtn = document.getElementById('sidebarMsgBtn');
+  var sidebarHelpBtn = document.getElementById('sidebarHelpBtn');
+
+  function closeAll() {
+    msgPanel.classList.remove('open');
+    userPanel.classList.remove('open');
+  }
+  sidebarUser.addEventListener('click', function(e) {
+    e.stopPropagation();
+    var isOpen = userPanel.classList.contains('open');
+    closeAll();
+    if (!isOpen) userPanel.classList.add('open');
+  });
+  sidebarMsgBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    var isOpen = msgPanel.classList.contains('open');
+    closeAll();
+    if (!isOpen) msgPanel.classList.add('open');
+  });
+  sidebarHelpBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    closeAll();
+  });
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.sidebar-bottom-btn') && !e.target.closest('.sidebar-user') && !e.target.closest('.sidebar-user-dropdown') && !e.target.closest('.sidebar-msg-panel')) closeAll();
+  });
+
+  // 查看全部消息 → 数据概览的消息页
+  document.getElementById('msgViewAll').addEventListener('click', function(e) {
+    e.stopPropagation();
+    closeAll();
+    window.location.href = 'index.html#messages';
+  });
+
+  /* ═══════════ 退出登录 ═══════════ */
+  var logoutOverlay = document.getElementById('logoutOverlay');
+  document.getElementById('logoutBtn').addEventListener('click', function() {
+    closeAll();
+    logoutOverlay.classList.add('open');
+  });
+  document.getElementById('logoutCancel').addEventListener('click', function() {
+    logoutOverlay.classList.remove('open');
+  });
+  document.getElementById('logoutConfirm').addEventListener('click', function() {
+    window.location.href = 'login.html';
+  });
+  logoutOverlay.addEventListener('click', function(e) {
+    if (e.target === logoutOverlay) logoutOverlay.classList.remove('open');
+  });
+
+  /* ═══════════ toast ═══════════ */
+  var messageContainer = document.getElementById('messageContainer');
+  var messageTimers = {};
+  function showMessage(id, type, msg, duration) {
+    var existing = document.getElementById('message-' + id);
+    if (existing) { existing.remove(); clearTimeout(messageTimers[id]); }
+    var message = document.createElement('div');
+    message.className = 'message message-' + type;
+    message.id = 'message-' + id;
+    var iconSvg = type === 'success'
+      ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>'
+      : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>';
+    message.innerHTML = '<div class="message-icon">' + iconSvg + '</div><span>' + msg + '</span>';
+    messageContainer.appendChild(message);
+    requestAnimationFrame(function() { message.classList.add('show'); });
+    if (duration) {
+      messageTimers[id] = setTimeout(function() {
+        message.classList.remove('show');
+        setTimeout(function() { message.remove(); }, 300);
+      }, duration);
+    }
+  }
+
+  /* ═══════════ 视图切换 ═══════════ */
+  var listView = document.getElementById('taskListView');
+  var createView = document.getElementById('taskCreateView');
+
+  function showView(view) {
+    [listView, createView].forEach(function(v) { v.classList.remove('active'); });
+    view.classList.add('active');
+    window.scrollTo(0, 0);
+  }
+
+  /* ═══════════ 基础数据 ═══════════ */
+  var classes = ['一年级1班','一年级2班','二年级1班','二年级2班','三年级1班','三年级2班','四年级1班','四年级2班','五年级1班','五年级2班','六年级1班','六年级2班'];
+  var surnames = ['张','李','王','刘','陈','杨','赵','黄','周','吴','郑','孙','马','朱','胡','林'];
+  var givenNames = ['小明','思涵','宇轩','欣怡','浩然','雨萱','天宇','诗琪','博文','雅婷','凯瑞','梦瑶','逸飞','晓晨','佳慧','睿杰','思远','语嫣','铭轩','雨桐'];
+
+  // 每班固定 10 名学生（健康ID / 学号稳定可复现）
+  var students = [];
+  classes.forEach(function(cls, ci) {
+    for (var i = 0; i < 10; i++) {
+      var idx = ci * 10 + i;
+      students.push({
+        healthId: 'HID' + String(10001 + idx),
+        studentNo: '2026' + String(idx + 1).padStart(3, '0'),
+        name: surnames[idx % surnames.length] + givenNames[idx % givenNames.length],
+        gender: idx % 2 === 0 ? '男' : '女',
+        class: cls
+      });
+    }
+  });
+
+  // 用确定性伪随机生成进度（同一任务每次刷新一致）
+  function seeded(n) {
+    var x = Math.sin(n * 12.9898) * 43758.5453;
+    return x - Math.floor(x);
+  }
+
+  var TODAY = '2026-07-06';
+
+  function fmtDate(d) {
+    var m = ('0' + (d.getMonth() + 1)).slice(-2);
+    var dd = ('0' + d.getDate()).slice(-2);
+    return d.getFullYear() + '-' + m + '-' + dd;
+  }
+
+  var tasks = [
+    { id: 1, name: '2026 秋季学期全校视力筛查', type: '视力评估', start: '2026-06-20', end: '2026-07-10', classes: classes.slice() },
+    { id: 2, name: '三年级视力筛查复测', type: '视力评估', start: '2026-07-01', end: '2026-07-15', classes: ['三年级1班','三年级2班'] },
+    { id: 3, name: '四年级视觉训练（第一批）', type: '视力训练', start: '2026-06-25', end: '2026-07-20', classes: ['四年级1班','四年级2班'] },
+    { id: 4, name: '一、二年级视觉训练', type: '视力训练', start: '2026-07-12', end: '2026-08-05', classes: ['一年级1班','一年级2班','二年级1班','二年级2班'] },
+    { id: 5, name: '五年级期末视力筛查', type: '视力评估', start: '2026-07-18', end: '2026-07-30', classes: ['五年级1班','五年级2班'] },
+    { id: 6, name: '六年级毕业班视力档案核查', type: '视力评估', start: '2026-05-10', end: '2026-06-10', classes: ['六年级1班','六年级2班'] },
+    { id: 7, name: '全校视觉训练（暑期）', type: '视力训练', start: '2026-07-02', end: '2026-08-20', classes: classes.slice() }
+  ];
+
+  // 补足到 70 条：按年级/学期/批次确定性生成，刷新结果一致
+  (function generateTasks() {
+    var gradeNames = ['一年级', '二年级', '三年级', '四年级', '五年级', '六年级'];
+    var terms = ['春季学期', '秋季学期', '暑期', '期末', '开学初'];
+    var detectKinds = ['视力普查', '视力筛查', '专项筛查', '视力复测'];
+    var trainKinds = ['视觉训练', '视力干预训练', '训练复查'];
+    var origin = new Date(2026, 1, 1); // 2026-02-01
+
+    for (var id = 8; id <= 70; id++) {
+      var r1 = seeded(id * 13 + 1);
+      var r2 = seeded(id * 17 + 5);
+      var r3 = seeded(id * 19 + 7);
+      var r4 = seeded(id * 23 + 11);
+      var r5 = seeded(id * 29 + 13);
+
+      var isDetect = r1 < 0.55;
+      var type = isDetect ? '视力评估' : '视力训练';
+      var grade = gradeNames[Math.floor(r2 * gradeNames.length)];
+      var term = terms[Math.floor(r3 * terms.length)];
+      var kindList = isDetect ? detectKinds : trainKinds;
+      var kind = kindList[Math.floor(r4 * kindList.length)];
+
+      var startDay = Math.floor(r5 * 210);            // 2026-02-01 ~ 2026-08-30
+      var duration = 10 + Math.floor(seeded(id * 31 + 17) * 25);
+      var startDate = new Date(origin.getTime());
+      startDate.setDate(startDate.getDate() + startDay);
+      var endDate = new Date(startDate.getTime());
+      endDate.setDate(endDate.getDate() + duration);
+
+      // 约 1/4 的任务覆盖多个年级
+      var scope;
+      if (seeded(id * 37 + 19) > 0.75) {
+        scope = classes.slice();
+      } else {
+        scope = classes.filter(function(c) { return c.indexOf(grade) === 0; });
+      }
+
+      // 有 1/4 概率覆盖全校，命名随之区分，避免与年级任务混淆
+      var scopeLabel = scope.length === classes.length ? '全校' : grade;
+      // 序号保证名称唯一
+      var seq = id - 7;
+      tasks.push({
+        id: id,
+        name: scopeLabel + term + kind + '（第' + seq + '期）',
+        type: type,
+        start: fmtDate(startDate),
+        end: fmtDate(endDate),
+        classes: scope
+      });
+    }
+  })();
+
+  // 为每个任务/班级生成应完成数与已完成数
+  function taskClassStat(task, cls) {
+    var should = students.filter(function(s) { return s.class === cls; }).length;
+    // 未开始的任务没有任何完成量，避免出现"未开始却有进度"的矛盾
+    if (TODAY < task.start) return { should: should, done: 0 };
+    // 已过结束时间的任务视为全部完成，避免出现"已结束却仍在进行中"
+    if (TODAY > task.end) return { should: should, done: should };
+    var key = task.id * 100 + classes.indexOf(cls);
+    // 进行中的任务保留未完成余量：至少 1 人、至多 should-1 人
+    var done = 1 + Math.floor(seeded(key) * (should - 1));
+    return { should: should, done: done };
+  }
+
+  function taskTotals(task) {
+    var should = 0, done = 0;
+    task.classes.forEach(function(c) {
+      var st = taskClassStat(task, c);
+      should += st.should; done += st.done;
+    });
+    return { should: should, done: done, rate: should ? Math.round(done / should * 100) : 0 };
+  }
+
+  function taskStatus(task) {
+    if (TODAY < task.start) return '未开始';
+    var t = taskTotals(task);
+    if (t.should > 0 && t.done >= t.should) return '已完成';
+    return '进行中';
+  }
+
+  function statusClass(s) {
+    if (s === '未开始') return 'st-pending';
+    if (s === '已完成') return 'st-done';
+    return 'st-active';
+  }
+
+  function typeClass(t) {
+    return t === '视力评估' ? 't-detect' : 't-train';
+  }
+
+  function progressHtml(done, should) {
+    var pct = should ? Math.round(done / should * 100) : 0;
+    return '<div class="progress-cell">' +
+      '<div class="progress-track"><div class="progress-fill" style="width:' + pct + '%"></div></div>' +
+      '<span class="progress-text">' + done + '/' + should + '</span>' +
+      '</div>';
+  }
+
+  /* ═══════════ 任务列表 ═══════════ */
+  var taskTableBody = document.getElementById('taskTableBody');
+  var taskCountEl = document.getElementById('taskCount');
+  var taskPagination = document.getElementById('taskPagination');
+  var taskSelectAll = document.getElementById('taskSelectAll');
+  // 已勾选任务：id -> true（跨分页保留）
+  var selectedTasks = {};
+  var taskPageSize = 20;
+  var taskCurrentPage = 1;
+  var appliedFilter = { keyword: '', type: '', status: '' };
+
+  document.getElementById('taskPageSize').addEventListener('change', function() {
+    taskPageSize = parseInt(this.value, 10);
+    taskCurrentPage = 1;
+    renderTaskTable();
+  });
+
+  function filteredTasks() {
+    return tasks.filter(function(t) {
+      if (appliedFilter.keyword && t.name.indexOf(appliedFilter.keyword) === -1) return false;
+      if (appliedFilter.type && t.type !== appliedFilter.type) return false;
+      if (appliedFilter.status && taskStatus(t) !== appliedFilter.status) return false;
+      return true;
+    });
+  }
+
+  // 是否有任一筛选条件生效
+  function hasTaskFilter() {
+    return !!(appliedFilter.keyword || appliedFilter.type || appliedFilter.status);
+  }
+
+  function renderTaskTable() {
+    var list = filteredTasks();
+    var totalPages = Math.max(1, Math.ceil(list.length / taskPageSize));
+    if (taskCurrentPage > totalPages) taskCurrentPage = totalPages;
+    var start = (taskCurrentPage - 1) * taskPageSize;
+    var pageData = list.slice(start, start + taskPageSize);
+
+    taskTableBody.innerHTML = pageData.map(function(t) {
+      var totals = taskTotals(t);
+      var st = taskStatus(t);
+      return '<tr>' +
+        '<td style="text-align:center"><input type="checkbox" class="row-checkbox task-check" data-task-id="' + t.id + '"' + (isTaskChecked(t.id) ? ' checked' : '') + '></td>' +
+        '<td>' + t.name + '</td>' +
+        '<td><span class="type-badge ' + typeClass(t.type) + '">' + t.type + '</span></td>' +
+        '<td>' + totals.should + ' 人</td>' +
+        '<td>' + t.start + '</td>' +
+        '<td>' + t.end + '</td>' +
+        '<td>' + progressHtml(totals.done, totals.should) + '</td>' +
+        '<td><span class="status-badge ' + statusClass(st) + '">' + st + '</span></td>' +
+        '<td><button class="member-action" data-task-id="' + t.id + '">编辑</button></td>' +
+        '</tr>';
+    }).join('') || '<tr><td colspan="9" style="text-align:center;color:var(--muted-light);padding:40px">' +
+      (hasTaskFilter() ? '暂无符合条件的数据' : '暂无数据') + '</td></tr>';
+
+    taskCountEl.textContent = '共 ' + list.length + ' 条';
+    renderPagination(taskPagination, taskCurrentPage, totalPages, function(p) {
+      taskCurrentPage = p;
+      renderTaskTable();
+    });
+    syncTaskSelectAll();
+  }
+
+  /* 任务勾选与批量删除（跨分页保留） */
+  var taskBatchDeleteBtn = document.getElementById('taskBatchDeleteBtn');
+
+  function selectedTaskIds() {
+    return Object.keys(selectedTasks).filter(function(k) { return selectedTasks[k]; });
+  }
+
+  function isTaskChecked(id) {
+    return !!selectedTasks[id];
+  }
+
+  // 全选框是 thead 里的独立节点，需在每次重渲染后复位
+  function syncTaskSelectAll() {
+    var all = taskTableBody.querySelectorAll('.task-check');
+    var checkedCount = taskTableBody.querySelectorAll('.task-check:checked').length;
+    taskSelectAll.checked = all.length > 0 && checkedCount === all.length;
+    taskSelectAll.indeterminate = checkedCount > 0 && checkedCount < all.length;
+
+    var total = selectedTaskIds().length;
+    taskBatchDeleteBtn.style.display = total > 0 ? 'inline-flex' : 'none';
+    document.getElementById('taskBatchDeleteCount').textContent = total > 0 ? '（' + total + '）' : '';
+  }
+
+  function renderPagination(el, current, total, onGo) {
+    el.innerHTML = '';
+    var prev = document.createElement('button');
+    prev.className = 'member-page-btn';
+    prev.textContent = '‹';
+    prev.disabled = current <= 1;
+    prev.addEventListener('click', function() { onGo(current - 1); });
+    el.appendChild(prev);
+
+    for (var i = 1; i <= total; i++) {
+      (function(page) {
+        var btn = document.createElement('button');
+        btn.className = 'member-page-btn' + (page === current ? ' active' : '');
+        btn.textContent = page;
+        btn.addEventListener('click', function() { onGo(page); });
+        el.appendChild(btn);
+      })(i);
+    }
+
+    var next = document.createElement('button');
+    next.className = 'member-page-btn';
+    next.textContent = '›';
+    next.disabled = current >= total;
+    next.addEventListener('click', function() { onGo(current + 1); });
+    el.appendChild(next);
+  }
+
+  document.getElementById('filterSearchBtn').addEventListener('click', function() {
+    appliedFilter.keyword = document.getElementById('filterKeyword').value.trim();
+    appliedFilter.type = document.getElementById('filterType').value;
+    appliedFilter.status = document.getElementById('filterStatus').value;
+    taskCurrentPage = 1;
+    renderTaskTable();
+  });
+
+  document.getElementById('filterResetBtn').addEventListener('click', function() {
+    document.getElementById('filterKeyword').value = '';
+    setSelectValue(document.getElementById('filterType'), '');
+    setSelectValue(document.getElementById('filterStatus'), '');
+    appliedFilter = { keyword: '', type: '', status: '' };
+    selectedTasks = {};
+    taskCurrentPage = 1;
+    renderTaskTable();
+  });
+
+  // 刷新列表：保留当前筛选与页码，重新读取数据渲染
+  document.getElementById('filterRefreshBtn').addEventListener('click', function() {
+    selectedTasks = {};
+    renderTaskTable();
+    showMessage('task-refresh-success', 'success', '列表已刷新', 2000);
+  });
+
+  taskTableBody.addEventListener('click', function(e) {
+    if (e.target.classList.contains('task-check')) return;
+    var btn = e.target.closest('button[data-task-id]');
+    if (btn) openDetail(parseInt(btn.getAttribute('data-task-id'), 10));
+  });
+
+  /* 全选（当前页） */
+  taskSelectAll.addEventListener('change', function() {
+    var checked = this.checked;
+    taskTableBody.querySelectorAll('.task-check').forEach(function(cb) {
+      cb.checked = checked;
+      var id = cb.getAttribute('data-task-id');
+      if (checked) selectedTasks[id] = true;
+      else delete selectedTasks[id];
+    });
+    this.indeterminate = false;
+    syncTaskSelectAll();
+  });
+  taskTableBody.addEventListener('change', function(e) {
+    if (!e.target.classList.contains('task-check')) return;
+    var id = e.target.getAttribute('data-task-id');
+    if (e.target.checked) selectedTasks[id] = true;
+    else delete selectedTasks[id];
+    syncTaskSelectAll();
+  });
+
+  /* 批量删除任务 */
+  var taskDeleteOverlay = document.getElementById('taskDeleteOverlay');
+  var pendingDeleteTaskIds = [];
+
+  // 仅「未开始」的任务可删除
+  function deletableTasks(ids) {
+    return ids.map(function(id) {
+      return tasks.filter(function(x) { return String(x.id) === String(id); })[0];
+    }).filter(function(t) { return t && taskStatus(t) === '未开始'; });
+  }
+
+  function warnNotDeletable(blocked) {
+    var names = blocked.map(function(t) { return t.name; });
+    showMessage('task-delete-blocked', 'warning',
+      '仅「未开始」的任务可删除，' + (names.length === 1 ? '该任务' : '以下任务') +
+      '已开始或已完成：' + names.join('、'), 3200);
+  }
+
+  document.getElementById('taskBatchDeleteBtn').addEventListener('click', function() {
+    var ids = selectedTaskIds();
+    if (ids.length === 0) return;
+
+    var allowed = deletableTasks(ids);
+    var blocked = ids.map(function(id) {
+      return tasks.filter(function(x) { return String(x.id) === String(id); })[0];
+    }).filter(function(t) { return t && taskStatus(t) !== '未开始'; });
+
+    if (allowed.length === 0) {
+      warnNotDeletable(blocked);
+      return;
+    }
+    if (blocked.length > 0) warnNotDeletable(blocked);
+
+    pendingDeleteTaskIds = allowed.map(function(t) { return String(t.id); });
+    var names = allowed.map(function(t) { return t.name; });
+    document.querySelector('#taskDeleteOverlay .confirm-title').textContent =
+      names.length > 1 ? '确认批量删除' : '确认删除';
+    document.getElementById('taskDeleteMsg').innerHTML =
+      '确定删除以下 ' + names.length + ' 个任务？<br><span style="color:var(--fg);font-weight:500">' + names.join('、') + '</span>';
+    taskDeleteOverlay.classList.add('open');
+  });
+
+  document.getElementById('taskDeleteCancel').addEventListener('click', function() {
+    taskDeleteOverlay.classList.remove('open');
+    pendingDeleteTaskIds = [];
+  });
+
+  document.getElementById('taskDeleteConfirm').addEventListener('click', function() {
+    if (pendingDeleteTaskIds.length === 0) return;
+    var ids = pendingDeleteTaskIds.slice();
+    tasks = tasks.filter(function(t) { return ids.indexOf(String(t.id)) === -1; });
+    ids.forEach(function(id) { delete selectedTasks[id]; });
+    pendingDeleteTaskIds = [];
+    taskDeleteOverlay.classList.remove('open');
+    // 若删除的是当前正在编辑的任务，清空编辑态
+    if (editingTaskId !== null && ids.indexOf(String(editingTaskId)) !== -1) {
+      editingTaskId = null;
+      editingTask = null;
+    }
+    taskCurrentPage = 1;
+    renderTaskTable();
+    // 删除后统一回列表
+    showView(listView);
+    showMessage('task-delete-success', 'success', '已删除 ' + ids.length + ' 个任务', 2500);
+  });
+
+  taskDeleteOverlay.addEventListener('click', function(e) {
+    if (e.target === taskDeleteOverlay) {
+      taskDeleteOverlay.classList.remove('open');
+      pendingDeleteTaskIds = [];
+    }
+  });
+
+  function studentStatusFor(task, student) {
+    var st = taskClassStat(task, student.class);
+    // 用该生在本班内的序号决定状态，保证已完成人数与班级统计一致
+    var sameClass = students.filter(function(s) { return s.class === student.class; });
+    var pos = sameClass.indexOf(student);
+    if (pos < st.done) {
+      if (task.type === '视力评估') return pos % 13 === 0 ? '待重测' : '已检';
+      return '已完成';
+    }
+    return task.type === '视力评估' ? '待检' : '未开始';
+  }
+
+  function statusCssClass(label) {
+    if (label === '已检' || label === '已完成') return 'st-done';
+    if (label === '待重测') return 'st-retest';
+    return 'st-pending';
+  }
+
+
+  /* ═══════════ 数据导出：勾选任务覆盖的全部人员 ═══════════ */
+  document.getElementById('taskExportBtn').addEventListener('click', function() {
+    var checked = Array.prototype.slice.call(taskTableBody.querySelectorAll('.task-check:checked'));
+    if (checked.length === 0) {
+      showMessage('task-export-warn', 'warning', '请选择需要导出的任务', 3000);
+      return;
+    }
+
+    var selectedIds = checked.map(function(cb) { return parseInt(cb.getAttribute('data-task-id'), 10); });
+    var selectedTasks = tasks.filter(function(t) { return selectedIds.indexOf(t.id) !== -1; });
+
+    function esc(v) {
+      var str = String(v == null ? '' : v);
+      return /[",\n]/.test(str) ? '"' + str.replace(/"/g, '""') + '"' : str;
+    }
+
+    var lines = ['任务名,任务类型,任务周期,健康ID,学号,人员姓名,性别,年级班级,状态'];
+    selectedTasks.forEach(function(task) {
+      students.filter(function(s) { return task.classes.indexOf(s.class) !== -1; }).forEach(function(s) {
+        lines.push([
+          esc(task.name),
+          esc(task.type),
+          esc(task.start + ' 至 ' + task.end),
+          esc(s.healthId),
+          esc(s.studentNo),
+          esc(s.name),
+          esc(s.gender),
+          esc(s.class),
+          esc(studentStatusFor(task, s))
+        ].join(','));
+      });
+    });
+
+    var blob = new Blob(['\ufeff' + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    var link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    var now = new Date();
+    var dateStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+    var seq = String(Math.floor(Math.random() * 900) + 100);
+    link.download = '任务数据_' + dateStr + '_' + seq + '.csv';
+    link.click();
+    URL.revokeObjectURL(link.href);
+
+    showMessage('task-export-success', 'success', '数据导出成功', 3000);
+  });
+
+  /* ═══════════ 新建任务 ═══════════ */
+  var gradeClassMap = {};
+  classes.forEach(function(cls) {
+    var m = cls.match(/^(.+年级)(\d+班)$/);
+    if (!m) return;
+    if (!gradeClassMap[m[1]]) gradeClassMap[m[1]] = [];
+    if (gradeClassMap[m[1]].indexOf(m[2]) === -1) gradeClassMap[m[1]].push(m[2]);
+  });
+  var grades = Object.keys(gradeClassMap);
+
+  /* ═══════════ 新建 / 编辑任务：任务人员选择 ═══════════ */
+  var createMembers = [];          // 当前任务人员（students 对象引用）
+  var editingTaskId = null;        // null = 新建，否则为编辑中的任务 id
+  var editingTask = null;
+
+  function memberKey(s) { return s.healthId; }
+
+  function addMembers(list) {
+    list.forEach(function(s) {
+      if (!createMembers.some(function(m) { return memberKey(m) === memberKey(s); })) createMembers.push(s);
+    });
+  }
+
+  /* 进入编辑：把任务数据填入表单，复用新建页结构 */
+  function openDetail(id) {
+    var task = tasks.filter(function(t) { return t.id === id; })[0];
+    if (!task) return;
+
+    editingTaskId = task.id;
+    editingTask = task;
+    document.getElementById('createCrumbTitle').textContent = task.name + '（' + taskStatus(task) + '）';
+    document.getElementById('createSubmitBtn').textContent = '保存';
+    document.getElementById('createDeleteBtn').style.display = '';
+
+    document.getElementById('createName').value = task.name;
+    setSelectValue(document.getElementById('createType'), task.type);
+    document.getElementById('createStart').value = task.start;
+    document.getElementById('createEnd').value = task.end;
+
+    // 人员名单：按任务覆盖班级还原
+    createMembers = students.filter(function(s) { return task.classes.indexOf(s.class) !== -1; });
+    createMemberPage = 1;
+    selectedMembers = {};
+    document.getElementById('createMemberName').value = '';
+    document.getElementById('createMemberHealthId').value = '';
+    document.getElementById('createMemberNo').value = '';
+    syncClassFilterOptions();
+    renderCreateMembers();
+
+    // 编辑态显示状态列
+    document.getElementById('createMemberStatusTh').style.display = '';
+    showView(createView);
+  }
+
+  // 人员列表筛选 + 分页
+  var createMemberPageSize = 20;
+  var createMemberPage = 1;
+  // 已勾选人员：healthId -> true（跨筛选/分页保留）
+  var selectedMembers = {};
+
+  function selectedMemberKeys() {
+    return Object.keys(selectedMembers).filter(function(k) { return selectedMembers[k]; });
+  }
+
+  function syncMemberSelectionUI() {
+    var count = selectedMemberKeys().length;
+    var btn = document.getElementById('batchRemoveBtn');
+    document.getElementById('batchRemoveCount').textContent = count > 0 ? '（' + count + '）' : '';
+    btn.style.display = count > 0 ? 'inline-flex' : 'none';
+
+    var boxes = document.querySelectorAll('#createMemberBody .member-check');
+    var checkedOnPage = document.querySelectorAll('#createMemberBody .member-check:checked').length;
+    var selAll = document.getElementById('createMemberSelectAll');
+    selAll.checked = boxes.length > 0 && checkedOnPage === boxes.length;
+    selAll.indeterminate = checkedOnPage > 0 && checkedOnPage < boxes.length;
+  }
+
+  // 人员列表是否有筛选条件生效
+  function hasMemberFilter() {
+    return !!(document.getElementById('createMemberName').value.trim()
+      || document.getElementById('createMemberHealthId').value.trim()
+      || document.getElementById('createMemberNo').value.trim()
+      || document.getElementById('createMemberClass').value);
+  }
+
+  function createFilteredMembers() {
+    var name = document.getElementById('createMemberName').value.trim();
+    var hid = document.getElementById('createMemberHealthId').value.trim();
+    var no = document.getElementById('createMemberNo').value.trim();
+    var cls = document.getElementById('createMemberClass').value;
+    return createMembers.filter(function(s) {
+      if (name && s.name.indexOf(name) === -1) return false;
+      if (hid && s.healthId.indexOf(hid) === -1) return false;
+      if (no && s.studentNo.indexOf(no) === -1) return false;
+      if (cls && s.class !== cls) return false;
+      return true;
+    });
+  }
+
+  function renderCreateMembers() {
+    var list = createFilteredMembers();
+    var totalPages = Math.max(1, Math.ceil(list.length / createMemberPageSize));
+    if (createMemberPage > totalPages) createMemberPage = totalPages;
+    var start = (createMemberPage - 1) * createMemberPageSize;
+    var pageData = list.slice(start, start + createMemberPageSize);
+
+    document.getElementById('createMemberBody').innerHTML = pageData.map(function(s) {
+      var checked = selectedMembers[s.healthId] ? ' checked' : '';
+      var statusCell = '';
+      if (editingTaskId !== null) {
+        var label = studentStatusFor(editingTask, s);
+        statusCell = '<td><span class="status-badge ' + statusCssClass(label) + '">' + label + '</span></td>';
+      }
+      return '<tr>' +
+        '<td style="text-align:center"><input type="checkbox" class="row-checkbox member-check" data-member-key="' + s.healthId + '"' + checked + '></td>' +
+        '<td>' + s.healthId + '</td>' +
+        '<td>' + s.studentNo + '</td>' +
+        '<td>' + s.class + '</td>' +
+        '<td>' + s.name + '</td>' +
+        '<td>' + s.gender + '</td>' +
+        statusCell +
+        '<td><button class="member-action member-action-danger" data-remove-member="' + s.healthId + '">移除</button></td>' +
+        '</tr>';
+    }).join('') || '<tr><td colspan="8" style="text-align:center;color:var(--muted-light);padding:40px">' +
+      (hasMemberFilter() ? '暂无符合条件的数据' : '暂无人员，请点击「人员添加」或「班级添加」') + '</td></tr>';
+
+    document.getElementById('createMemberCount').textContent = '共 ' + list.length + ' 人';
+    renderPagination(document.getElementById('createMemberPagination'), createMemberPage, totalPages, function(p) {
+      createMemberPage = p;
+      renderCreateMembers();
+    });
+    syncMemberSelectionUI();
+  }
+
+  // 班级筛选下拉选项在人员变化时同步
+  function syncClassFilterOptions() {
+    var used = [];
+    createMembers.forEach(function(s) { if (used.indexOf(s.class) === -1) used.push(s.class); });
+    used.sort();
+    var sel = document.getElementById('createMemberClass');
+    var current = sel.value;
+    sel.innerHTML = '<option value="">全部班级</option>' +
+      used.map(function(c) { return '<option value="' + c + '">' + c + '</option>'; }).join('');
+    sel.value = used.indexOf(current) !== -1 ? current : '';
+    refreshCustomSelect(sel);
+  }
+
+  /* ─── 勾选人员 ─────────────────────────────────────────── */
+  document.getElementById('createMemberBody').addEventListener('change', function(e) {
+    if (!e.target.classList.contains('member-check')) return;
+    var key = e.target.getAttribute('data-member-key');
+    if (e.target.checked) selectedMembers[key] = true;
+    else delete selectedMembers[key];
+    syncMemberSelectionUI();
+  });
+
+  document.getElementById('createMemberSelectAll').addEventListener('change', function() {
+    var checked = this.checked;
+    document.querySelectorAll('#createMemberBody .member-check').forEach(function(cb) {
+      var key = cb.getAttribute('data-member-key');
+      cb.checked = checked;
+      if (checked) selectedMembers[key] = true;
+      else delete selectedMembers[key];
+    });
+    syncMemberSelectionUI();
+  });
+
+  /* 移除人员：二次确认（单个 / 批量共用） */
+  var removeMemberOverlay = document.getElementById('removeMemberOverlay');
+  var pendingRemoveKeys = [];
+
+  function openRemoveConfirm(keys, title, msg, confirmLabel) {
+    pendingRemoveKeys = keys;
+    document.querySelector('#removeMemberOverlay .confirm-title').textContent = title;
+    document.getElementById('removeMemberMsg').innerHTML = msg;
+    document.getElementById('removeMemberConfirm').textContent = confirmLabel;
+    removeMemberOverlay.classList.add('open');
+  }
+
+  var memberPopover = document.getElementById('memberPopover');
+  var popoverTargetKey = null;
+
+  function closeMemberPopover() {
+    memberPopover.classList.remove('open');
+    popoverTargetKey = null;
+  }
+
+  function openMemberPopover(btn, key) {
+    var target = createMembers.filter(function(m) { return memberKey(m) === key; })[0];
+    document.getElementById('memberPopoverMsg').textContent = '确定移除「' + (target ? target.name : '该人员') + '」？';
+    popoverTargetKey = key;
+    var r = btn.getBoundingClientRect();
+    memberPopover.classList.add('open');
+    var pw = memberPopover.offsetWidth, ph = memberPopover.offsetHeight;
+    // 气泡右边缘对齐按钮右边缘，按钮靠右时向左展开，避免贴屏幕边
+    var left = Math.max(8, Math.min(r.right - pw, window.innerWidth - pw - 8));
+    var top = r.bottom + 6;
+    if (top + ph > window.innerHeight - 8) top = r.top - ph - 6;
+    memberPopover.style.left = left + 'px';
+    memberPopover.style.top = top + 'px';
+  }
+
+  document.getElementById('createMemberBody').addEventListener('click', function(e) {
+    var btn = e.target.closest('[data-remove-member]');
+    if (!btn) return;
+    var key = btn.getAttribute('data-remove-member');
+    openMemberPopover(btn, key);
+  });
+
+  document.getElementById('memberPopoverCancel').addEventListener('click', closeMemberPopover);
+
+  document.getElementById('memberPopoverConfirm').addEventListener('click', function() {
+    if (!popoverTargetKey) return;
+    var key = popoverTargetKey;
+    closeMemberPopover();
+    createMembers = createMembers.filter(function(m) { return memberKey(m) !== key; });
+    delete selectedMembers[key];
+    renderCreateMembers();
+    syncClassFilterOptions();
+    showMessage('remove-member-success', 'success', '人员已移除', 2500);
+  });
+
+  // 点击气泡外或滚动时关闭
+  document.addEventListener('click', function(e) {
+    if (!memberPopover.classList.contains('open')) return;
+    if (!e.target.closest('.member-popover') && !e.target.closest('[data-remove-member]')) closeMemberPopover();
+  });
+  window.addEventListener('scroll', closeMemberPopover, true);
+  window.addEventListener('resize', closeMemberPopover);
+
+  document.getElementById('batchRemoveBtn').addEventListener('click', function() {
+    var keys = selectedMemberKeys();
+    if (keys.length === 0) return;
+    var names = keys.map(function(k) {
+      var m = createMembers.filter(function(x) { return memberKey(x) === k; })[0];
+      return m ? m.name : k;
+    });
+    openRemoveConfirm(
+      keys,
+      '确认批量移除',
+      '确定移除以下 ' + names.length + ' 名人员？<br><span style="color:var(--fg);font-weight:500">' + names.join('、') + '</span>',
+      '移除'
+    );
+  });
+
+  document.getElementById('removeMemberCancel').addEventListener('click', function() {
+    removeMemberOverlay.classList.remove('open');
+    pendingRemoveKeys = [];
+  });
+
+  document.getElementById('removeMemberConfirm').addEventListener('click', function() {
+    if (pendingRemoveKeys.length === 0) return;
+    var toRemove = pendingRemoveKeys.slice();
+    createMembers = createMembers.filter(function(m) { return toRemove.indexOf(memberKey(m)) === -1; });
+    toRemove.forEach(function(k) { delete selectedMembers[k]; });
+    pendingRemoveKeys = [];
+    removeMemberOverlay.classList.remove('open');
+    renderCreateMembers();
+    syncClassFilterOptions();
+    showMessage('remove-member-success', 'success', toRemove.length > 1 ? '已移除 ' + toRemove.length + ' 名人员' : '人员已移除', 2500);
+  });
+
+  removeMemberOverlay.addEventListener('click', function(e) {
+    if (e.target === removeMemberOverlay) {
+      removeMemberOverlay.classList.remove('open');
+      pendingRemoveKeys = [];
+    }
+  });
+
+  ['createMemberName', 'createMemberHealthId', 'createMemberNo'].forEach(function(id) {
+    document.getElementById(id).addEventListener('input', function() {
+      createMemberPage = 1;
+      renderCreateMembers();
+    });
+  });
+  document.getElementById('createMemberClass').addEventListener('change', function() {
+    createMemberPage = 1;
+    renderCreateMembers();
+  });
+  document.getElementById('createMemberResetBtn').addEventListener('click', function() {
+    document.getElementById('createMemberName').value = '';
+    document.getElementById('createMemberHealthId').value = '';
+    document.getElementById('createMemberNo').value = '';
+    setSelectValue(document.getElementById('createMemberClass'), '');
+    createMemberPage = 1;
+    renderCreateMembers();
+  });
+
+  // 刷新人员列表：保留筛选与页码，重新渲染
+  document.getElementById('createMemberRefreshBtn').addEventListener('click', function() {
+    renderCreateMembers();
+    showMessage('member-refresh-success', 'success', '列表已刷新', 2000);
+  });
+
+  /* ─── 穿梭框通用逻辑 ───────────────────────────────────── */
+  function makeTransfer(cfg) {
+    var state = { left: [], right: [], leftChecked: {}, rightChecked: {}, all: [] };
+    var el = {
+      overlay: document.getElementById(cfg.overlayId),
+      search: document.getElementById(cfg.searchId),
+      leftList: document.getElementById(cfg.leftListId),
+      rightList: document.getElementById(cfg.rightListId),
+      leftCount: document.getElementById(cfg.leftCountId),
+      rightCount: document.getElementById(cfg.rightCountId),
+      addBtn: document.getElementById(cfg.addBtnId),
+      removeBtn: document.getElementById(cfg.removeBtnId),
+      leftClear: document.getElementById(cfg.leftClearId),
+      rightClear: document.getElementById(cfg.rightClearId),
+      confirm: document.getElementById(cfg.confirmId)
+    };
+
+    function keyOf(item) { return cfg.keyOf(item); }
+    function labelOf(item) { return cfg.labelOf(item); }
+
+    function renderList(container, items, checkedMap, side) {
+      if (items.length === 0) {
+        container.innerHTML = '<div class="transfer-empty">' + (side === 'left' ? '无可选数据' : '尚未选择') + '</div>';
+        return;
+      }
+      container.innerHTML = items.map(function(item) {
+        var k = keyOf(item);
+        var checked = checkedMap[k] ? ' checked' : '';
+        var safeKey = String(k).replace(/"/g, '&quot;');
+        return '<label class="transfer-item">' +
+          '<input type="checkbox" data-side="' + side + '" data-key="' + safeKey + '"' + checked + '>' +
+          '<span class="transfer-item-text">' + labelOf(item) + '</span>' +
+          '</label>';
+      }).join('');
+    }
+
+    function refresh() {
+      var kw = el.search.value.trim();
+      state.left = state.all.filter(function(item) {
+        if (state.right.some(function(r) { return keyOf(r) === keyOf(item); })) return false;
+        return !kw || labelOf(item).indexOf(kw) !== -1;
+      });
+      renderList(el.leftList, state.left, state.leftChecked, 'left');
+      renderList(el.rightList, state.right, state.rightChecked, 'right');
+      el.leftCount.textContent = '(' + state.left.length + ')';
+      el.rightCount.textContent = '(' + state.right.length + ')';
+      // 已选为空时确定无意义，禁用（撤回改动请用「取消」）
+      el.confirm.disabled = state.right.length === 0;
+    }
+
+    function bindList(listEl, side) {
+      listEl.addEventListener('change', function(e) {
+        if (e.target.tagName !== 'INPUT') return;
+        var k = e.target.getAttribute('data-key');
+        var map = side === 'left' ? state.leftChecked : state.rightChecked;
+        if (e.target.checked) map[k] = true; else delete map[k];
+      });
+    }
+    bindList(el.leftList, 'left');
+    bindList(el.rightList, 'right');
+
+    el.addBtn.addEventListener('click', function() {
+      state.left.forEach(function(item) {
+        if (state.leftChecked[keyOf(item)]) state.right.push(item);
+      });
+      state.leftChecked = {};
+      refresh();
+    });
+
+    el.removeBtn.addEventListener('click', function() {
+      state.right = state.right.filter(function(item) { return !state.rightChecked[keyOf(item)]; });
+      state.rightChecked = {};
+      refresh();
+    });
+
+    // 全选 / 取消全选（当前待选列表）
+    el.leftClear.addEventListener('click', function() {
+      var allChecked = state.left.length > 0 && state.left.every(function(item) { return state.leftChecked[keyOf(item)]; });
+      state.leftChecked = {};
+      if (!allChecked) {
+        state.left.forEach(function(item) { state.leftChecked[keyOf(item)] = true; });
+      }
+      renderList(el.leftList, state.left, state.leftChecked, 'left');
+    });
+
+    el.rightClear.addEventListener('click', function() {
+      state.right = [];
+      state.rightChecked = {};
+      refresh();
+    });
+
+    el.search.addEventListener('input', refresh);
+
+    function close() { el.overlay.classList.remove('open'); }
+    function open() {
+      state.right = typeof cfg.initial === 'function' ? cfg.initial().slice() : [];
+      state.leftChecked = {};
+      state.rightChecked = {};
+      state.all = cfg.source();
+      el.search.value = '';
+      refresh();
+      el.overlay.classList.add('open');
+    }
+
+    cfg.closeIds.forEach(function(id) {
+      document.getElementById(id).addEventListener('click', close);
+    });
+    el.overlay.addEventListener('click', function(e) {
+      if (e.target === el.overlay) close();
+    });
+    el.confirm.addEventListener('click', function() {
+      cfg.onConfirm(state.right);
+      close();
+    });
+
+    return { open: open, close: close };
+  }
+
+  /* ─── 添加人员穿梭框 ───────────────────────────────────── */
+  var personTransfer = makeTransfer({
+    overlayId: 'personTransfer',
+    searchId: 'personSearch',
+    leftListId: 'personLeftList',
+    rightListId: 'personRightList',
+    leftCountId: 'personLeftCount',
+    rightCountId: 'personRightCount',
+    addBtnId: 'personAddBtn',
+    removeBtnId: 'personRemoveBtn',
+    leftClearId: 'personLeftClear',
+    rightClearId: 'personRightClear',
+    confirmId: 'personTransferConfirm',
+    closeIds: ['personTransferClose', 'personTransferCancel'],
+    keyOf: function(s) { return s.healthId; },
+    labelOf: function(s) { return s.name + '（' + s.healthId + ' / ' + s.class + '）'; },
+    source: function() { return students.slice(); },
+    initial: function() { return createMembers.slice(); },
+    onConfirm: function(selected) {
+      createMembers = selected.slice();
+      createMemberPage = 1;
+      renderCreateMembers();
+      syncClassFilterOptions();
+    }
+  });
+
+  /* ─── 添加班级穿梭框 ───────────────────────────────────── */
+  var classTransfer = makeTransfer({
+    overlayId: 'classTransfer',
+    searchId: 'classSearch',
+    leftListId: 'classLeftList',
+    rightListId: 'classRightList',
+    leftCountId: 'classLeftCount',
+    rightCountId: 'classRightCount',
+    addBtnId: 'classAddBtn',
+    removeBtnId: 'classRemoveBtn',
+    leftClearId: 'classLeftClear',
+    rightClearId: 'classRightClear',
+    confirmId: 'classTransferConfirm',
+    closeIds: ['classTransferClose', 'classTransferCancel'],
+    keyOf: function(c) { return c; },
+    labelOf: function(c) {
+      return c + '（' + students.filter(function(s) { return s.class === c; }).length + ' 人）';
+    },
+    source: function() { return classes.slice(); },
+    initial: function() {
+      // 已选 = 当前人员完整覆盖的班级
+      return classes.filter(function(c) {
+        var inClass = students.filter(function(s) { return s.class === c; });
+        return inClass.length > 0 && inClass.every(function(s) {
+          return createMembers.some(function(m) { return memberKey(m) === memberKey(s); });
+        });
+      });
+    },
+    onConfirm: function(selected) {
+      // 展开为班级全部学生：先移除未选中班级的已有人员，再补齐选中班级
+      var keep = createMembers.filter(function(m) { return selected.indexOf(m.class) === -1; });
+      createMembers = keep;
+      selected.forEach(function(c) {
+        addMembers(students.filter(function(s) { return s.class === c; }));
+      });
+      createMemberPage = 1;
+      renderCreateMembers();
+      syncClassFilterOptions();
+    }
+  });
+
+  document.getElementById('addPersonBtn').addEventListener('click', personTransfer.open);
+  document.getElementById('addClassBtn').addEventListener('click', classTransfer.open);
+
+  document.getElementById('createName').addEventListener('input', function() {
+    this.classList.remove('error');
+    document.getElementById('createNameError').classList.remove('show');
+  });
+  ['createStart', 'createEnd'].forEach(function(id) {
+    document.getElementById(id).addEventListener('input', function() {
+      this.classList.remove('error');
+      document.getElementById('createPeriodError').classList.remove('show');
+    });
+  });
+  // 自定义下拉的错误态加在 trigger 上（原生 select 已隐藏）
+  function setTypeError(on) {
+    var sel = document.getElementById('createType');
+    var wrap = sel.nextElementSibling;
+    var trigger = wrap && wrap.classList.contains('custom-select-wrap') ? wrap.querySelector('.custom-select-trigger') : null;
+    if (trigger) trigger.classList.toggle('error', on);
+    document.getElementById('createTypeError').classList.toggle('show', on);
+  }
+
+  document.getElementById('createType').addEventListener('change', function() {
+    setTypeError(false);
+  });
+
+  function resetCreateForm() {
+    // 回到「新建」态
+    editingTaskId = null;
+    editingTask = null;
+    document.getElementById('createCrumbTitle').textContent = '新建任务';
+    document.getElementById('createSubmitBtn').textContent = '保存提交';
+    document.getElementById('createDeleteBtn').style.display = 'none';
+    document.getElementById('createMemberStatusTh').style.display = 'none';
+
+    document.getElementById('createName').value = '';
+    document.getElementById('createStart').value = '';
+    document.getElementById('createEnd').value = '';
+    setSelectValue(document.getElementById('createType'), '');
+    createMembers = [];
+    createMemberPage = 1;
+    selectedMembers = {};
+    document.getElementById('createMemberName').value = '';
+    document.getElementById('createMemberHealthId').value = '';
+    document.getElementById('createMemberNo').value = '';
+    syncClassFilterOptions();
+    renderCreateMembers();
+    document.getElementById('createPeriodError').textContent = '请选择任务周期';
+    document.getElementById('createPeriodError').classList.remove('show');
+    ['createNameError', 'createPeriodError'].forEach(function(id) {
+      document.getElementById(id).classList.remove('show');
+    });
+    ['createName', 'createStart', 'createEnd'].forEach(function(k) {
+      var input = document.getElementById(k);
+      if (input && input.classList.contains('form-input')) input.classList.remove('error');
+    });
+    setTypeError(false);
+  }
+
+  document.getElementById('newTaskBtn').addEventListener('click', function() {
+    resetCreateForm();
+    showView(createView);
+  });
+
+  document.getElementById('createCancelBtn').addEventListener('click', function() {
+    showView(listView);
+  });
+  document.getElementById('createBack').addEventListener('click', function() {
+    showView(listView);
+  });
+
+  /* 编辑态：删除当前任务 */
+  document.getElementById('createDeleteBtn').addEventListener('click', function() {
+    if (editingTaskId === null) return;
+    if (editingTask && taskStatus(editingTask) !== '未开始') {
+      warnNotDeletable([editingTask]);
+      return;
+    }
+    pendingDeleteTaskIds = [String(editingTaskId)];
+    document.querySelector('#taskDeleteOverlay .confirm-title').textContent = '确认删除';
+    document.getElementById('taskDeleteMsg').innerHTML =
+      '确定删除任务「<span style="color:var(--fg);font-weight:500">' +
+      document.getElementById('createName').value +
+      '</span>」？<br>删除后不可恢复，请谨慎操作。';
+    taskDeleteOverlay.classList.add('open');
+  });
+
+  document.getElementById('createSubmitBtn').addEventListener('click', function() {
+    var name = document.getElementById('createName').value.trim();
+    var start = document.getElementById('createStart').value;
+    var end = document.getElementById('createEnd').value;
+    var type = document.getElementById('createType').value;
+    var valid = true;
+
+    if (!name) {
+      document.getElementById('createName').classList.add('error');
+      document.getElementById('createNameError').classList.add('show');
+      valid = false;
+    }
+    if (!type) {
+      setTypeError(true);
+      valid = false;
+    }
+    var periodError = document.getElementById('createPeriodError');
+    if (!start || !end) {
+      if (!start) document.getElementById('createStart').classList.add('error');
+      if (!end) document.getElementById('createEnd').classList.add('error');
+      periodError.textContent = '请选择任务周期';
+      periodError.classList.add('show');
+      valid = false;
+    } else if (end < start) {
+      document.getElementById('createEnd').classList.add('error');
+      periodError.textContent = '结束时间不能早于开始时间';
+      periodError.classList.add('show');
+      valid = false;
+    }
+    if (!valid) return;
+
+    // 人员可为空；classes 由所选人员反推，保证列表页统计一致
+    var chosen = [];
+    createMembers.forEach(function(s) { if (chosen.indexOf(s.class) === -1) chosen.push(s.class); });
+
+    if (editingTaskId !== null) {
+      // 编辑保存
+      var target = tasks.filter(function(t) { return t.id === editingTaskId; })[0];
+      if (target) {
+        target.name = name;
+        target.type = type;
+        target.start = start;
+        target.end = end;
+        target.classes = chosen;
+      }
+      renderTaskTable();
+      showView(listView);
+      showMessage('task-update-success', 'success', '任务已保存', 2500);
+      return;
+    }
+
+    var newId = tasks.reduce(function(max, t) { return Math.max(max, t.id); }, 0) + 1;
+    tasks.unshift({ id: newId, name: name, type: type, start: start, end: end, classes: chosen });
+
+    appliedFilter = { keyword: '', type: '', status: '' };
+    document.getElementById('filterKeyword').value = '';
+    setSelectValue(document.getElementById('filterType'), '');
+    setSelectValue(document.getElementById('filterStatus'), '');
+    selectedTasks = {};
+    taskCurrentPage = 1;
+    renderTaskTable();
+    showView(listView);
+    showMessage('task-create-success', 'success', '任务创建成功', 2500);
+  });
+
+  /* ═══════════ 自定义下拉（与健康档案页一致） ═══════════ */
+  function setSelectValue(selectEl, value) {
+    selectEl.value = value;
+    refreshCustomSelect(selectEl);
+  }
+
+  function refreshCustomSelect(selectEl) {
+    var wrap = selectEl.nextElementSibling;
+    if (!wrap || !wrap.classList.contains('custom-select-wrap')) return;
+    var trigger = wrap.querySelector('.custom-select-trigger');
+    var triggerText = trigger ? trigger.querySelector('span') : null;
+    var menu = wrap.querySelector('.custom-select-menu');
+    if (!trigger || !triggerText || !menu) return;
+
+    menu.innerHTML = '';
+    var sizeClass = trigger.classList.contains('xs') ? ' xs' : (trigger.classList.contains('sm') ? ' sm' : '');
+    // data-hide-empty-option：空值仅作默认态占位，不出现在下拉菜单中
+    var hideEmpty = selectEl.dataset.hideEmptyOption === 'true';
+    for (var oi = 0; oi < selectEl.options.length; oi++) {
+      if (hideEmpty && selectEl.options[oi].value === '') continue;
+      (function(option) {
+        var item = document.createElement('div');
+        item.className = 'custom-select-item' + sizeClass;
+        item.textContent = option.text;
+        item.dataset.value = option.value;
+        if (option.value === selectEl.value) item.classList.add('selected');
+        item.addEventListener('click', function(e) {
+          e.stopPropagation();
+          selectEl.value = this.dataset.value;
+          triggerText.textContent = (this.dataset.value === '' && selectEl.dataset.triggerText) ? selectEl.dataset.triggerText : this.textContent;
+          triggerText.className = (this.dataset.value === '' && selectEl.dataset.triggerText) ? 'cs-placeholder' : '';
+          menu.classList.remove('open');
+          trigger.classList.remove('open');
+          menu.querySelectorAll('.custom-select-item').forEach(function(i) { i.classList.remove('selected'); });
+          this.classList.add('selected');
+          selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+        menu.appendChild(item);
+      })(selectEl.options[oi]);
+    }
+
+    var selectedOpt = selectEl.options[selectEl.selectedIndex];
+    if (selectedOpt) {
+      triggerText.textContent = (!selectedOpt.value && selectEl.dataset.triggerText) ? selectEl.dataset.triggerText : selectedOpt.text;
+      triggerText.className = (!selectedOpt.value && selectEl.dataset.triggerText) ? 'cs-placeholder' : '';
+    } else {
+      triggerText.textContent = selectEl.dataset.triggerText || '请选择';
+      triggerText.className = 'cs-placeholder';
+    }
+  }
+
+  function convertSelectToCustom(selectEl) {
+    if (selectEl.dataset.csDone === 'true') return;
+    selectEl.dataset.csDone = 'true';
+    selectEl.style.display = 'none';
+
+    var isPageSize = selectEl.classList.contains('page-size-select');
+    var wrap = document.createElement('div');
+    wrap.className = 'custom-select-wrap';
+
+    var trigger = document.createElement('div');
+    trigger.className = 'custom-select-trigger' + (isPageSize ? ' xs up' : '');
+
+    var triggerText = document.createElement('span');
+    trigger.appendChild(triggerText);
+
+    var arrowSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    arrowSvg.setAttribute('viewBox', '0 0 24 24');
+    arrowSvg.setAttribute('fill', 'none');
+    arrowSvg.setAttribute('stroke', 'currentColor');
+    arrowSvg.setAttribute('stroke-width', '1.6');
+    arrowSvg.setAttribute('stroke-linecap', 'round');
+    arrowSvg.setAttribute('stroke-linejoin', 'round');
+    var polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+    polyline.setAttribute('points', '6 9 12 15 18 9');
+    arrowSvg.appendChild(polyline);
+    trigger.appendChild(arrowSvg);
+
+    var menu = document.createElement('div');
+    menu.className = 'custom-select-menu' + (isPageSize ? ' up' : '');
+
+    trigger.addEventListener('click', function(e) {
+      e.stopPropagation();
+      menu.classList.toggle('open');
+      trigger.classList.toggle('open');
+    });
+    document.addEventListener('click', function() {
+      menu.classList.remove('open');
+      trigger.classList.remove('open');
+    });
+
+    wrap.appendChild(trigger);
+    wrap.appendChild(menu);
+    selectEl.parentNode.insertBefore(wrap, selectEl.nextSibling);
+    refreshCustomSelect(selectEl);
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll('select.form-select, select.page-size-select'), convertSelectToCustom);
+
+  /* ═══════════ 初始化 ═══════════ */
+  document.getElementById('createMemberStatusTh').style.display = 'none';
+  renderTaskTable();
+  syncClassFilterOptions();
+  renderCreateMembers();
+
+  // 支持从其他页面直达详情：task-management.html#detail-2
+  var hashMatch = location.hash.match(/^#detail-(\d+)$/);
+  if (hashMatch) openDetail(parseInt(hashMatch[1], 10));
+})();
+</script>
+<script src="js/msg-badge.js"></script>
+<script src="js/sidebar-toggle.js"></script>
+</body></html>

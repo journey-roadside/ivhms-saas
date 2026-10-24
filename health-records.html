@@ -3,7 +3,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>视力健康管理平台 · 健康档案</title>
-<script src="vendor/chart.umd.min.js"></script>
+<script src="js/chart.umd.min.js"></script>
 <style>
   :root {
     --bg:          #f7f7f7;
@@ -160,15 +160,21 @@
   .cascaded-item.cascaded-empty{padding:20px 14px;color:var(--muted-light);font-size:13px;justify-content:center;cursor:default}
   .cascaded-item.cascaded-empty:hover{background:transparent}
   .filter-actions{display:flex;gap:12px;align-items:center;justify-self:end;height:44px}
+  /* 查询/重置等宽，两页一致 */
+  .filter-actions .btn-primary,.filter-actions .btn-secondary{min-width:96px;justify-content:center}
   .header-actions{display:flex;gap:12px;align-items:center}
   .record-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
   .record-header-left{display:flex;align-items:center;gap:8px}
-  .btn-outline{padding:8px 20px;font-size:14px;font-weight:500;border-radius:var(--radius-pill);cursor:pointer;font-family:var(--font-body);background:var(--surface);color:var(--fg);border:1px solid var(--border-md);transition:background .15s;display:inline-flex;align-items:center;gap:6px}
+  .btn-outline{padding:8px 20px;font-size:14px;font-weight:500;border-radius:var(--radius-pill);cursor:pointer;font-family:var(--font-body);background:var(--surface);color:var(--fg);border:1px solid var(--border-md);transition:background .15s;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
   .btn-outline:hover{background:rgba(0,0,0,0.06)}
   .btn-outline svg{width:16px;height:16px}
   .btn-save{padding:8px 20px;font-size:14px}
   .card-table-wrap{overflow-x:auto}
   .member-table{width:auto;min-width:100%;border-collapse:collapse;font-size:14px}
+  /* 窄屏保持各列可读，超出时容器横向滑动；宽屏仍撑满容器 */
+  .record-table{min-width:max(100%,1100px)}
+  .record-table th,.record-table td{white-space:nowrap}
+  .record-table td:nth-child(4){min-width:80px}
   .member-table thead{background:transparent}
   .member-table th{padding:12px 14px;text-align:left;font-weight:700;color:#000;font-size:14px;border-bottom:1px solid var(--border-md)}
   .member-table td{padding:12px 14px;border-bottom:1px solid #F2F2F2;color:var(--fg)}
@@ -176,12 +182,12 @@
   .member-table tbody tr:hover{background:rgba(0,212,164,.03)}
   .member-action{color:#00d4a4;cursor:pointer;font-size:13px;font-weight:500;border:none;background:none;padding:0;font-family:var(--font-body)}
   .member-action:hover{opacity:.8}
-  .record-pagination-row{display:flex;align-items:center;justify-content:space-between;margin-top:32px;gap:16px}
+  .record-pagination-row{display:flex;align-items:center;justify-content:space-between;margin-top:32px;gap:16px;flex-wrap:wrap}
   .record-pagination-left{display:flex;align-items:center;gap:12px}
-  .record-count{font-size:13px;color:var(--muted-light)}
+  .record-count{font-size:13px;color:var(--muted-light);white-space:nowrap}
   .page-size-select{height:32px;padding:0 28px 0 10px;font-family:var(--font-body);font-size:13px;color:var(--fg);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);outline:none;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23767676' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;background-size:14px;cursor:pointer}
   .page-size-select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,164,0.12)}
-  .member-pagination{display:flex;align-items:center;gap:8px}
+  .member-pagination{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .member-page-btn{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:var(--radius-md);font-size:13px;font-weight:500;cursor:pointer;font-family:var(--font-body);border:1px solid var(--border-md);background:var(--surface);color:var(--fg);transition:background .15s,border-color .15s}
   .member-page-btn:hover{background:var(--bg)}
   .member-page-btn.active{background:var(--fg);color:#fff;border-color:var(--fg)}
@@ -268,8 +274,8 @@
   .drawer-footer{padding:24px 32px;border-top:1px solid var(--border-md);display:flex;gap:12px;justify-content:flex-end}
 
   /* ─── global message ─────────────────────────────────────────── */
-  .message-container{position:fixed;top:24px;left:50%;transform:translateX(-50%);z-index:10000;display:flex;flex-direction:column;gap:12px;pointer-events:none}
-  .message{display:flex;align-items:center;gap:10px;padding:14px 24px;border-radius:var(--radius-lg);font-size:14px;font-weight:500;font-family:var(--font-body);box-shadow:0 8px 32px rgba(0,0,0,0.12),0 2px 8px rgba(0,0,0,0.06);pointer-events:auto;opacity:0;transform:translateY(-12px);transition:opacity .3s,transform .3s;max-width:480px;white-space:nowrap}
+  .message-container{position:fixed;top:24px;left:50%;transform:translateX(-50%);z-index:10000;display:flex;flex-direction:column;gap:12px;pointer-events:none;width:max-content;max-width:calc(100vw - 32px)}
+  .message{display:flex;align-items:flex-start;gap:10px;padding:14px 24px;border-radius:var(--radius-lg);font-size:14px;font-weight:500;font-family:var(--font-body);box-shadow:0 8px 32px rgba(0,0,0,0.12),0 2px 8px rgba(0,0,0,0.06);pointer-events:auto;opacity:0;transform:translateY(-12px);transition:opacity .3s,transform .3s;max-width:100%;white-space:normal;line-height:1.5;text-align:left}
   .message.show{opacity:1;transform:translateY(0)}
   .message.message-warning{background:#fff;color:var(--fg);border:1px solid var(--border-md)}
   .message.message-warning .message-icon{color:#f59e0b}
@@ -277,7 +283,7 @@
   .message.message-loading .message-icon{color:var(--accent)}
   .message.message-success{background:#fff;color:var(--fg);border:1px solid var(--border-md)}
   .message.message-success .message-icon{color:var(--accent)}
-  .message-icon{display:flex;align-items:center;flex-shrink:0}
+  .message-icon{display:flex;align-items:center;flex-shrink:0;margin-top:2px}
   .message-icon svg{width:20px;height:20px}
   .message-spinner{display:flex;align-items:center;flex-shrink:0}
   .message-spinner svg{width:20px;height:20px;animation:message-spin 1s linear infinite}
@@ -354,16 +360,26 @@
     .main-wrap{margin-left:0}
     .content{padding:12px}
     .confirm-box{width:calc(100vw - 32px)}
+    /* 7 列筛选栏在窄屏改为单列堆叠，避免横向溢出 */
+    .filter-row{grid-template-columns:1fr}
+    .filter-row .filter-actions{justify-self:stretch}
+    /* 头部三按钮窄屏换行，避免文字被压成竖排 */
+    .header-actions{flex-wrap:wrap}
+    .custom-select-trigger.xs{white-space:nowrap}
   }
   @media(min-width:641px) and (max-width:800px){
     .sidebar{transform:translateX(-100%)}
     .sidebar.open{transform:translateX(0)}
     .main-wrap{margin-left:0}
     .content{padding:16px}
+    .filter-row{grid-template-columns:1fr 1fr}
+    .filter-row .filter-actions{grid-column:1/-1;justify-self:end}
   }
   @media(min-width:801px) and (max-width:1100px){
     :root{--sidebar-w:180px}
     .content{padding:20px}
+    .filter-row{grid-template-columns:repeat(4,1fr)}
+    .filter-row .filter-actions{grid-column:1/-1;justify-self:end}
   }
   @media(min-width:1101px) and (max-width:1400px){
     :root{--sidebar-w:220px}
@@ -400,6 +416,10 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
       健康档案
     </a>
+    <a class="sidebar-item" href="task-management.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path></svg>
+      任务管理
+    </a>
     <a class="sidebar-item" href="device-status.html">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>
       设备状态
@@ -427,11 +447,11 @@
 
   <!-- 用户下拉菜单（独立浮层） -->
   <div class="sidebar-user-dropdown" id="userPanel">
-    <a class="user-menu-item" href="index.html">
+    <a class="user-menu-item" href="index.html#profile">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
       个人中心
     </a>
-    <a class="user-menu-item" href="index.html">
+    <a class="user-menu-item" href="index.html#admin">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
       管理后台
     </a>
@@ -495,7 +515,11 @@
           </button>
           <button class="btn-outline" id="exportBtn" style="height:40px">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-            报表导出
+            数据导出
+          </button>
+          <button class="btn-outline" id="batchDeleteBtn" style="height:40px;display:none;color:#ef4444;border-color:#ef4444">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"></path><path d="M10 11v6M14 11v6"></path><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"></path></svg>
+            删除<span id="batchDeleteCount"></span>
           </button>
         </div>
       </div>
@@ -542,10 +566,11 @@
         <div class="filter-actions">
           <button class="btn-primary" id="filterSearchBtn" style="height:40px">查询</button>
           <button class="btn-secondary" id="filterResetBtn" style="height:40px">重置</button>
+          <button class="btn-secondary" id="filterRefreshBtn" style="height:40px">刷新</button>
         </div>
       </div>
       <div class="card-table-wrap">
-      <table class="member-table">
+      <table class="member-table record-table">
         <thead>
           <tr>
             <th style="width:40px;text-align:center"><input type="checkbox" id="selectAll"></th>
@@ -837,6 +862,18 @@
   </div>
 </div>
 
+<!-- 批量删除档案确认对话框 -->
+<div class="confirm-overlay" id="batchDeleteOverlay">
+  <div class="confirm-box">
+    <div class="confirm-title">确认批量删除</div>
+    <div class="confirm-msg" id="batchDeleteMsg">删除后不可恢复，请谨慎操作。</div>
+    <div class="confirm-actions">
+      <button class="confirm-btn confirm-btn-cancel" id="batchDeleteCancel">取消</button>
+      <button class="confirm-btn confirm-btn-danger" id="batchDeleteConfirm">确认删除</button>
+    </div>
+  </div>
+</div>
+
 <!-- 新建档案抽屉 -->
 <div class="drawer-overlay" id="newRecordDrawer">
   <div class="drawer-panel">
@@ -945,22 +982,6 @@
     if (e.target === logoutOverlay) logoutOverlay.classList.remove('open');
   });
 
-  /* ─── message panel: clear all ──────────────────────────────── */
-  var msgClearBtn = document.getElementById('msgClearBtn');
-  if (msgClearBtn) {
-    msgClearBtn.addEventListener('click', function() {
-      var list = document.getElementById('msgList');
-      list.innerHTML = '';
-      var badge = document.getElementById('sidebarMsgBadge');
-      if (badge) {
-        badge.textContent = '0';
-        badge.style.display = 'none';
-      }
-      var empty = document.getElementById('msgEmpty');
-      if (empty) empty.style.display = '';
-    });
-  }
-
   /* ─── message panel: mark as read on click ──────────────────── */
   var msgList = document.getElementById('msgList');
   if (msgList) {
@@ -978,12 +999,16 @@
   if (msgViewAll) {
     msgViewAll.addEventListener('click', function() {
       closeAll();
-      window.location.href = 'index.html';
+      window.location.href = 'index.html#messages';
     });
   }
 
   /* ─── health records list ─────────────────────────────────── */
   var recordData = [];
+  // 已勾选档案：healthId -> true（跨分页保留）
+  var selectedRecords = {};
+  var selectAllCheckbox = document.getElementById('selectAll');
+  var batchDeleteBtn = document.getElementById('batchDeleteBtn');
   var classes = ['一年级1班','一年级2班','二年级1班','二年级2班','三年级1班','三年级2班','四年级1班','四年级2班','五年级1班','五年级2班','六年级1班','六年级2班'];
   var names = ['张小明','李思涵','王宇轩','刘欣怡','陈浩然','杨雨萱','赵天宇','黄诗琪','周博文','吴雅婷','郑凯瑞','孙梦瑶','马逸飞','朱晓晨','胡佳慧','林睿杰','何思远','罗语嫣','谢铭轩','邓雨桐','曹子涵','许嘉琪','宋天乐','韩诗涵','冯浩宇','蒋欣然','唐雨轩','董雅琪','彭博文','潘梦琪','袁逸飞','于晓晨','何佳慧','余睿杰','卢思远','姚语嫣','任铭轩','石雨桐','高子涵','段嘉琪'];
   var surnames = ['张','李','王','刘','陈','杨','赵','黄','周','吴','郑','孙','马','朱','胡','林','何','罗','谢','邓','曹','许','宋','韩','冯','蒋','唐','董','彭','潘','袁','于','何','余','卢','姚','任','石','高','段'];
@@ -1211,6 +1236,13 @@
     });
   }
 
+  // 是否有任一筛选条件生效
+  function hasRecordFilter() {
+    return !!(filterNameInput.value.trim() || filterHealthIdInput.value.trim() || filterStudentNoInput.value.trim()
+      || filterStatusSelect.value || filterAssessTimeSelect.value || filterTrainTimeSelect.value
+      || selGrade || selClass);
+  }
+
   function renderRecordTable() {
     var filtered = getFilteredRecords();
     var total = filtered.length;
@@ -1222,13 +1254,15 @@
 
     recordTableBody.innerHTML = '';
     if (pageData.length === 0) {
-      recordTableBody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:var(--muted-light);padding:40px 0">暂无数据</td></tr>';
+      recordTableBody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:var(--muted-light);padding:40px 0">' +
+        (hasRecordFilter() ? '暂无符合条件的数据' : '暂无数据') + '</td></tr>';
     } else {
       pageData.forEach(function(r) {
         var tr = document.createElement('tr');
         var statusClass = r.status === '在读' ? 'st-active' : r.status === '毕业' ? 'st-graduated' : 'st-transfer';
+        var checkedAttr = selectedRecords[r.healthId] ? ' checked' : '';
         tr.innerHTML =
-          '<td style="text-align:center"><input type="checkbox" class="row-checkbox" data-id="' + r.healthId + '"></td>' +
+          '<td style="text-align:center"><input type="checkbox" class="row-checkbox" data-id="' + r.healthId + '"' + checkedAttr + '></td>' +
           '<td>' + r.studentNo + '</td>' +
           '<td>' + r.healthId + '</td>' +
           '<td>' + r.name + '</td>' +
@@ -1270,6 +1304,7 @@
       nextBtn.addEventListener('click', function(){ recordCurrentPage++; renderRecordTable(); });
       recordPagination.appendChild(nextBtn);
     }
+    syncRecordSelection();
   }
 
   document.getElementById('filterSearchBtn').addEventListener('click', function() {
@@ -1302,19 +1337,53 @@
         if (trig) trig.classList.remove('open');
       }
     });
-    selectAllCheckbox.checked = false;
-    document.querySelectorAll('.row-checkbox').forEach(function(cb) { cb.checked = false; });
+    selectedRecords = {};
     recordCurrentPage = 1;
     renderRecordTable();
   });
 
+  // 刷新列表：保留当前筛选与页码，重新读取数据渲染
+  document.getElementById('filterRefreshBtn').addEventListener('click', function() {
+    selectedRecords = {};
+    renderRecordTable();
+    showMessage('record-refresh-success', 'success', '列表已刷新', 2000);
+  });
+
   renderRecordTable();
 
-  /* ─── select all checkbox ──────────────────────────────────── */
-  var selectAllCheckbox = document.getElementById('selectAll');
+  /* ─── 勾选与批量删除 ───────────────────────────────────────── */
+  function selectedRecordIds() {
+    return Object.keys(selectedRecords).filter(function(k) { return selectedRecords[k]; });
+  }
+
+  function syncRecordSelection() {
+    var count = selectedRecordIds().length;
+    document.getElementById('batchDeleteCount').textContent = count > 0 ? '（' + count + '）' : '';
+    batchDeleteBtn.style.display = count > 0 ? 'inline-flex' : 'none';
+
+    var boxes = recordTableBody.querySelectorAll('.row-checkbox');
+    var checkedOnPage = recordTableBody.querySelectorAll('.row-checkbox:checked').length;
+    selectAllCheckbox.checked = boxes.length > 0 && checkedOnPage === boxes.length;
+    selectAllCheckbox.indeterminate = checkedOnPage > 0 && checkedOnPage < boxes.length;
+  }
+
   selectAllCheckbox.addEventListener('change', function() {
-    var checkboxes = document.querySelectorAll('.row-checkbox');
-    checkboxes.forEach(function(cb) { cb.checked = selectAllCheckbox.checked; });
+    var checked = this.checked;
+    recordTableBody.querySelectorAll('.row-checkbox').forEach(function(cb) {
+      cb.checked = checked;
+      var id = cb.getAttribute('data-id');
+      if (checked) selectedRecords[id] = true;
+      else delete selectedRecords[id];
+    });
+    syncRecordSelection();
+  });
+
+  recordTableBody.addEventListener('change', function(e) {
+    if (!e.target.classList.contains('row-checkbox')) return;
+    var id = e.target.getAttribute('data-id');
+    if (e.target.checked) selectedRecords[id] = true;
+    else delete selectedRecords[id];
+    syncRecordSelection();
   });
 
   /* ─── global message ──────────────────────────────────────────── */
@@ -1404,6 +1473,37 @@
       });
     }, 1500);
   });
+  /* ─── 批量删除档案 ────────────────────────────────────────── */
+  var batchDeleteOverlay = document.getElementById('batchDeleteOverlay');
+
+  batchDeleteBtn.addEventListener('click', function() {
+    var ids = selectedRecordIds();
+    if (ids.length === 0) return;
+    document.getElementById('batchDeleteMsg').innerHTML =
+      '确定删除选中的 ' + ids.length + ' 条档案？<br>删除后不可恢复，请谨慎操作。';
+    batchDeleteOverlay.classList.add('open');
+  });
+
+  document.getElementById('batchDeleteCancel').addEventListener('click', function() {
+    batchDeleteOverlay.classList.remove('open');
+  });
+
+  document.getElementById('batchDeleteConfirm').addEventListener('click', function() {
+    var ids = selectedRecordIds();
+    if (ids.length === 0) { batchDeleteOverlay.classList.remove('open'); return; }
+
+    recordData = recordData.filter(function(r) { return ids.indexOf(r.healthId) === -1; });
+    selectedRecords = {};
+    batchDeleteOverlay.classList.remove('open');
+    recordCurrentPage = 1;
+    renderRecordTable();
+    showMessage('batch-delete-success', 'success', '已删除 ' + ids.length + ' 条档案', 3000);
+  });
+
+  batchDeleteOverlay.addEventListener('click', function(e) {
+    if (e.target === batchDeleteOverlay) batchDeleteOverlay.classList.remove('open');
+  });
+
   /* ─── drawer: new record ────────────────────────────────────── */
   var drawerOverlay = document.getElementById('newRecordDrawer');
   var drawerNameInput = document.getElementById('drawerName');
@@ -2651,4 +2751,6 @@
     }
   })();
 </script>
+<script src="js/msg-badge.js"></script>
+<script src="js/sidebar-toggle.js"></script>
 </body></html>

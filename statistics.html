@@ -3,7 +3,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>视力健康管理平台 · 统计分析</title>
-<script src="vendor/chart.umd.min.js"></script>
+<script src="js/chart.umd.min.js"></script>
 <style>
   :root {
     --bg:          #f7f7f7;
@@ -271,6 +271,10 @@
     .content{padding:20px}
     .chart-legend{font-size:12px;gap:8px;margin-right:8px}
   }
+  /* 801-1024 侧栏转为抽屉，内容区变宽，四张图表卡改为整行单列 */
+  @media(min-width:801px) and (max-width:1024px){
+    .stats-row-2{grid-template-columns:1fr}
+  }
   @media(min-width:1101px) and (max-width:1400px){
     :root{--sidebar-w:220px}
   }
@@ -287,6 +291,7 @@
 <a class="sidebar-item" href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect></svg>数据概览</a>
 <a class="sidebar-item active" href="statistics.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>统计分析</a>
 <a class="sidebar-item" href="health-records.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>健康档案</a>
+<a class="sidebar-item" href="task-management.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path></svg>任务管理</a>
 <a class="sidebar-item" href="device-status.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line></svg>设备状态</a>
 </nav>
 <div class="sidebar-bottom"><div class="sidebar-user" id="sidebarUser"><div class="sidebar-avatar">远</div><span class="sidebar-username">张明远</span></div>
@@ -295,8 +300,8 @@
 
 <div class="main-wrap">
 <div class="sidebar-user-dropdown" id="userPanel">
-<a class="user-menu-item" href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>个人中心</a>
-<a class="user-menu-item" href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>管理后台</a>
+<a class="user-menu-item" href="index.html#profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>个人中心</a>
+<a class="user-menu-item" href="index.html#admin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>管理后台</a>
 <div class="user-menu-divider"></div>
 <div class="user-menu-item danger" id="logoutBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>退出登录</div></div>
 
@@ -566,11 +571,9 @@ document.getElementById('logoutBtn').addEventListener('click',function(){closeAl
 document.getElementById('logoutCancel').addEventListener('click',function(){logoutOverlay.classList.remove('open');});
 document.getElementById('logoutConfirm').addEventListener('click',function(){window.location.href='login.html';});
 logoutOverlay.addEventListener('click',function(e){if(e.target===logoutOverlay)logoutOverlay.classList.remove('open');});
-var msgClearBtn=document.getElementById('msgClearBtn');
-if(msgClearBtn)msgClearBtn.addEventListener('click',function(){document.getElementById('msgList').innerHTML='';var b=document.getElementById('sidebarMsgBadge');if(b){b.textContent='0';b.style.display='none';}document.getElementById('msgEmpty').style.display='';});
 var msgList=document.getElementById('msgList');
 if(msgList)msgList.addEventListener('click',function(e){var it=e.target.closest('.msg-item');if(it){it.dataset.read='true';it.style.opacity='0.5';}});
-document.getElementById('msgViewAll').addEventListener('click',function(){closeAll();window.location.href='index.html';});
+document.getElementById('msgViewAll').addEventListener('click',function(){closeAll();window.location.href='index.html#messages';});
 
 /* ═══ 模拟数据（按月）════════════════════════════════════ */
 var grades=['一年级','二年级','三年级','四年级','五年级','六年级'];
@@ -1346,4 +1349,6 @@ setupFilterIcon('warnLevelFilterIcon','warnLevelDropdown',function(v){warnLevelF
 
 })();
 </script>
+<script src="js/msg-badge.js"></script>
+<script src="js/sidebar-toggle.js"></script>
 </body></html>
