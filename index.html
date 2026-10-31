@@ -411,17 +411,27 @@
   .card-table-wrap{flex:1}
   /* ─── message list page ──────────────────────────────────── */
   .msg-tabs{display:flex;gap:24px;margin-top:20px;margin-bottom:20px;border-bottom:1px solid var(--border-md);padding-bottom:0}
-  .msg-tab{font-size:16px;font-weight:500;color:var(--muted);cursor:pointer;padding-bottom:12px;border-bottom:2px solid transparent;transition:color .15s,border-color .15s}
+  .msg-tab{position:relative;font-size:16px;font-weight:500;color:var(--muted);cursor:pointer;padding-bottom:12px;border-bottom:2px solid transparent;transition:color .15s,border-color .15s}
   .msg-tab:hover{color:var(--fg)}
   .msg-tab.active{color:var(--fg);border-bottom-color:var(--accent-deep)}
+  .msg-tab-dot{position:absolute;top:2px;right:-10px;width:6px;height:6px;border-radius:50%;background:var(--error)}
+  .msg-tab-all-read{margin-left:auto;padding:0 0 14px;border:none;background:none;font-family:var(--font-body);font-size:14px;line-height:24px;font-weight:500;color:var(--muted);cursor:pointer;transition:color .15s}
+  .msg-tab-all-read:hover{color:var(--fg)}
   .msg-list-table{width:100%;border-collapse:collapse;font-size:14px}
   .msg-list-table td{padding:14px 0;border-bottom:1px solid var(--border);color:var(--fg)}
   .msg-list-table td:first-child{width:80px;font-size:13px;color:var(--muted)}
   .msg-list-table td:nth-child(3){width:140px;font-size:12px;color:var(--muted-light);text-align:right}
   .msg-list-table tbody tr:hover{background:rgba(0,212,164,.03)}
+  .msg-list-table tbody tr.unread{cursor:pointer}
+  .msg-list-table tbody tr.unread td:nth-child(2){font-weight:600}
   .msg-empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:240px;color:var(--muted-light)}
   .msg-empty-state svg{width:48px;height:48px;color:rgba(0,0,0,0.12);margin-bottom:12px}
   .msg-empty-state span{font-size:14px}
+  @media(max-width:640px){
+    .msg-tabs{gap:18px}
+    .msg-tab{font-size:14px;white-space:nowrap}
+    .msg-tab-all-read{font-size:13px}
+  }
   .member-search-wrap{position:relative;display:flex;align-items:center}
   .member-search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted-light);pointer-events:none}
   .member-search{width:220px;height:38px;padding-left:34px;font-size:13px}
@@ -998,8 +1008,9 @@
         <div class="settings-page-title" style="margin-bottom:0">消息通知</div>
         <div class="msg-tabs">
           <div class="msg-tab active" data-tab="all">全部消息</div>
-          <div class="msg-tab" data-tab="unread">未读消息</div>
+          <div class="msg-tab" data-tab="unread">未读消息<span class="msg-tab-dot" id="msgUnreadDot" style="display:none"></span></div>
           <div class="msg-tab" data-tab="read">已读消息</div>
+          <button class="msg-tab-all-read" id="msgReadAllBtn" style="display:none">全部已读</button>
         </div>
         <table class="msg-list-table">
           <tbody id="msgListTableBody">
@@ -1247,6 +1258,11 @@
     currentSidebarActive = document.querySelector('.sidebar-item.active');
     document.querySelectorAll('.sidebar-item').forEach(function(i){ i.classList.remove('active'); });
     closeAll();
+    // 每次进入都从【全部消息】开始，保证演示路径固定
+    msgCurrentTab = 'all';
+    msgTabEls.forEach(function(t){ t.classList.toggle('active', t.getAttribute('data-tab') === 'all'); });
+    resetMsgUnread();
+    renderMsgList();
   }
 
   /* ─── message list page ───────────────────────────────────── */
@@ -1256,11 +1272,11 @@
   });
 
   var msgData = [
-    { type:'筛查通知', content:'三年级视力筛查已完成', time:'2026-06-23 10:30', read:true },
-    { type:'设备告警', content:'训练仪 2 已离线，请检查连接', time:'2026-06-23 09:15', read:true },
-    { type:'报告通知', content:'本周筛查报告已生成', time:'2026-06-22 16:45', read:true },
-    { type:'任务通知', content:'新学期视力评估任务已发布', time:'2026-06-22 14:20', read:true },
-    { type:'系统通知', content:'筛查终端 A 固件更新成功', time:'2026-06-22 11:05', read:true },
+    { type:'筛查通知', content:'三年级视力筛查已完成', time:'2026-06-23 10:30', read:false },
+    { type:'设备告警', content:'训练仪 2 已离线，请检查连接', time:'2026-06-23 09:15', read:false },
+    { type:'报告通知', content:'本周筛查报告已生成', time:'2026-06-22 16:45', read:false },
+    { type:'任务通知', content:'新学期视力评估任务已发布', time:'2026-06-22 14:20', read:false },
+    { type:'系统通知', content:'筛查终端 A 固件更新成功', time:'2026-06-22 11:05', read:false },
     { type:'筛查通知', content:'五年级视力筛查数据已上传', time:'2026-06-21 15:30', read:true },
     { type:'设备告警', content:'训练仪 5 温度异常，建议停机检查', time:'2026-06-21 08:40', read:true },
     { type:'报告通知', content:'四年级视力变化趋势报告已生成', time:'2026-06-20 17:20', read:true },
@@ -1291,6 +1307,7 @@
     { type:'报告通知', content:'全校视力筛查覆盖率统计已更新', time:'2026-06-10 17:55', read:true },
     { type:'任务通知', content:'秋季视力评估标准已更新', time:'2026-06-10 11:00', read:true }
   ];
+  var msgInitRead = msgData.map(function(m){ return m.read; });
 
   var msgPageSize = 20;
   var msgCurrentPage = 1;
@@ -1298,11 +1315,48 @@
   var msgTabEls = document.querySelectorAll('.msg-tab');
   var msgListTableBody = document.getElementById('msgListTableBody');
   var msgListPaginationEl = document.getElementById('msgListPagination');
+  var msgPanelListEl = document.getElementById('msgList');
+  var msgPanelInitHTML = msgPanelListEl.innerHTML;
+  var msgSidebarBadgeEl = document.getElementById('sidebarMsgBadge');
+  var msgSidebarEmptyEl = document.getElementById('msgEmpty');
 
   function getFilteredMsgList() {
     if (msgCurrentTab === 'unread') return msgData.filter(function(m){ return !m.read; });
     if (msgCurrentTab === 'read') return msgData.filter(function(m){ return m.read; });
     return msgData;
+  }
+
+  // 每次进入消息通知页都恢复初始未读状态，保证演示可重复
+  function resetMsgUnread() {
+    msgData.forEach(function(m, i){ m.read = msgInitRead[i]; });
+    msgCurrentPage = 1;
+    // 侧栏面板可能已被“全部已读”清空，重建初始 5 条
+    msgPanelListEl.innerHTML = msgPanelInitHTML;
+  }
+
+  function updateSidebarBadge(unreadCount) {
+    msgSidebarBadgeEl.textContent = String(unreadCount);
+    msgSidebarBadgeEl.style.display = unreadCount ? '' : 'none';
+    // 与 js/msg-badge.js 共用 key：全部已读时跨页面同步
+    if (unreadCount) sessionStorage.removeItem('msgRead');
+    else sessionStorage.setItem('msgRead', '1');
+  }
+
+  // 列表页未读状态同步到侧栏铃铛与面板（面板 5 条对应 msgData 前 5 条）
+  function syncSidebarMsg(unreadCount) {
+    updateSidebarBadge(unreadCount);
+    var items = msgPanelListEl.querySelectorAll('.msg-item');
+    for (var i = 0; i < items.length; i++) {
+      items[i].style.display = (msgData[i] && !msgData[i].read) ? '' : 'none';
+    }
+    msgSidebarEmptyEl.style.display = unreadCount ? 'none' : '';
+  }
+
+  function updateMsgUnreadUI() {
+    var unreadCount = msgData.filter(function(m){ return !m.read; }).length;
+    document.getElementById('msgUnreadDot').style.display = unreadCount ? '' : 'none';
+    document.getElementById('msgReadAllBtn').style.display = (msgCurrentTab === 'unread' && unreadCount) ? '' : 'none';
+    syncSidebarMsg(unreadCount);
   }
 
   function renderMsgList() {
@@ -1325,6 +1379,8 @@
     } else {
       pageData.forEach(function(m) {
         var tr = document.createElement('tr');
+        if (!m.read) tr.className = 'unread';
+        tr.dataset.msgIndex = msgData.indexOf(m);
         tr.innerHTML = '<td>' + m.type + '</td><td>' + m.content + '</td><td>' + m.time + '</td>';
         msgListTableBody.appendChild(tr);
       });
@@ -1365,6 +1421,7 @@
     }
 
     msgListPaginationEl.appendChild(navWrap);
+    updateMsgUnreadUI();
   }
 
   msgTabEls.forEach(function(tab) {
@@ -1375,6 +1432,18 @@
       msgCurrentPage = 1;
       renderMsgList();
     });
+  });
+
+  document.getElementById('msgReadAllBtn').addEventListener('click', function() {
+    msgData.forEach(function(m){ m.read = true; });
+    renderMsgList();
+  });
+
+  msgListTableBody.addEventListener('click', function(e) {
+    var tr = e.target.closest('tr');
+    if (!tr || !tr.classList.contains('unread')) return;
+    msgData[tr.dataset.msgIndex].read = true;
+    renderMsgList();
   });
 
   renderMsgList();
@@ -1812,7 +1881,17 @@
     if (item) {
       item.dataset.read = 'true';
       item.style.opacity = '0.5';
+      // 面板前 5 条对应 msgData 前 5 条，铃铛数字同步
+      var idx = Array.prototype.indexOf.call(item.parentNode.children, item);
+      if (msgData[idx]) msgData[idx].read = true;
+      updateSidebarBadge(msgData.filter(function(m){ return !m.read; }).length);
     }
+  });
+
+  // 面板【全部已读】同步消息列表页
+  document.getElementById('msgClearBtn').addEventListener('click', function() {
+    msgData.forEach(function(m){ m.read = true; });
+    renderMsgList();
   });
 
   /* ─── logout with confirm ──────────────────────────────────── */
