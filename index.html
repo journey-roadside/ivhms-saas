@@ -408,7 +408,7 @@
   .org-delete-popover .popover-btn{padding:6px 16px;font-size:13px}
 
   /* ─── table card flex layout ──────────────────────────────── */
-  .card-table-wrap{flex:1}
+  .card-table-wrap{flex:1;overflow-x:auto}
   /* ─── message list page ──────────────────────────────────── */
   .msg-tabs{display:flex;gap:24px;margin-top:20px;margin-bottom:20px;border-bottom:1px solid var(--border-md);padding-bottom:0}
   .msg-tab{position:relative;font-size:16px;font-weight:500;color:var(--muted);cursor:pointer;padding-bottom:12px;border-bottom:2px solid transparent;transition:color .15s,border-color .15s}
@@ -436,7 +436,7 @@
   .member-search-wrap{position:relative;display:flex;align-items:center}
   .member-search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted-light);pointer-events:none}
   .member-search{width:220px;height:38px;padding-left:34px;font-size:13px}
-  .member-table{width:100%;border-collapse:collapse;font-size:14px;table-layout:fixed}
+  .member-table{width:auto;min-width:100%;border-collapse:collapse;font-size:14px;table-layout:auto;white-space:nowrap}
   .member-table thead{background:transparent}
   .member-table th{padding:12px 14px;text-align:left;font-weight:700;color:#000;font-size:14px;border-bottom:1px solid var(--border-md)}
   .member-table td{padding:12px 14px;border-bottom:1px solid #F2F2F2;color:var(--fg)}

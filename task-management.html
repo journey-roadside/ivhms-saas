@@ -152,7 +152,7 @@
     /* 搜索框固定 600px，空间不足时自动收缩；右侧两个下拉宽度不变；按钮紧随状态下拉，不贴最右 */
   .filter-row{display:grid;grid-template-columns:minmax(0,600px) 200px 200px max-content;gap:12px;align-items:center;margin-bottom:24px}
   .filter-row-student{grid-template-columns:1fr 200px auto}
-  .filter-row-create{grid-template-columns:1fr 1fr 1fr 1fr auto}
+  .filter-row-create{grid-template-columns:1fr 1fr 1fr 1fr 1fr auto}
   .filter-actions{display:flex;gap:12px;align-items:center;justify-self:end}
   /* 查询/重置等宽，两页一致 */
   .filter-actions .btn-primary,.filter-actions .btn-secondary{min-width:96px;justify-content:center}
@@ -607,6 +607,14 @@
           <div class="form-group" style="margin:0">
             <select class="form-select" id="createMemberClass" data-trigger-text="选择班级">
               <option value="">全部班级</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin:0;display:none" id="createMemberStatusGroup">
+            <select class="form-select" id="createMemberStatus" data-trigger-text="选择状态">
+              <option value="">全部状态</option>
+              <option value="待评估">待评估</option>
+              <option value="评估完成">评估完成</option>
+              <option value="待重测">待重测</option>
             </select>
           </div>
           <div class="filter-actions">
@@ -1263,14 +1271,14 @@
     var sameClass = students.filter(function(s) { return s.class === student.class; });
     var pos = sameClass.indexOf(student);
     if (pos < st.done) {
-      if (task.type === '视力评估') return pos % 13 === 0 ? '待重测' : '已检';
+      if (task.type === '视力评估') return pos % 13 === 0 ? '待重测' : '评估完成';
       return '已完成';
     }
-    return task.type === '视力评估' ? '待检' : '未开始';
+    return task.type === '视力评估' ? '待评估' : '未开始';
   }
 
   function statusCssClass(label) {
-    if (label === '已检' || label === '已完成') return 'st-done';
+    if (label === '评估完成' || label === '已完成') return 'st-done';
     if (label === '待重测') return 'st-retest';
     return 'st-pending';
   }
@@ -1368,11 +1376,13 @@
     document.getElementById('createMemberName').value = '';
     document.getElementById('createMemberHealthId').value = '';
     document.getElementById('createMemberNo').value = '';
+    setSelectValue(document.getElementById('createMemberStatus'), '');
     syncClassFilterOptions();
     renderCreateMembers();
 
-    // 编辑态显示状态列
+    // 编辑态显示状态列与状态筛选
     document.getElementById('createMemberStatusTh').style.display = '';
+    document.getElementById('createMemberStatusGroup').style.display = '';
     showView(createView);
   }
 
@@ -1404,7 +1414,8 @@
     return !!(document.getElementById('createMemberName').value.trim()
       || document.getElementById('createMemberHealthId').value.trim()
       || document.getElementById('createMemberNo').value.trim()
-      || document.getElementById('createMemberClass').value);
+      || document.getElementById('createMemberClass').value
+      || document.getElementById('createMemberStatus').value);
   }
 
   function createFilteredMembers() {
@@ -1412,11 +1423,16 @@
     var hid = document.getElementById('createMemberHealthId').value.trim();
     var no = document.getElementById('createMemberNo').value.trim();
     var cls = document.getElementById('createMemberClass').value;
+    var status = document.getElementById('createMemberStatus').value;
     return createMembers.filter(function(s) {
       if (name && s.name.indexOf(name) === -1) return false;
       if (hid && s.healthId.indexOf(hid) === -1) return false;
       if (no && s.studentNo.indexOf(no) === -1) return false;
       if (cls && s.class !== cls) return false;
+      if (status) {
+        if (editingTaskId === null || !editingTask) return false;
+        if (studentStatusFor(editingTask, s) !== status) return false;
+      }
       return true;
     });
   }
@@ -1601,11 +1617,16 @@
     createMemberPage = 1;
     renderCreateMembers();
   });
+  document.getElementById('createMemberStatus').addEventListener('change', function() {
+    createMemberPage = 1;
+    renderCreateMembers();
+  });
   document.getElementById('createMemberResetBtn').addEventListener('click', function() {
     document.getElementById('createMemberName').value = '';
     document.getElementById('createMemberHealthId').value = '';
     document.getElementById('createMemberNo').value = '';
     setSelectValue(document.getElementById('createMemberClass'), '');
+    setSelectValue(document.getElementById('createMemberStatus'), '');
     createMemberPage = 1;
     renderCreateMembers();
   });
@@ -1835,6 +1856,7 @@
     document.getElementById('createSubmitBtn').textContent = '保存提交';
     document.getElementById('createDeleteBtn').style.display = 'none';
     document.getElementById('createMemberStatusTh').style.display = 'none';
+    document.getElementById('createMemberStatusGroup').style.display = 'none';
 
     document.getElementById('createName').value = '';
     document.getElementById('createStart').value = '';
@@ -1846,6 +1868,7 @@
     document.getElementById('createMemberName').value = '';
     document.getElementById('createMemberHealthId').value = '';
     document.getElementById('createMemberNo').value = '';
+    setSelectValue(document.getElementById('createMemberStatus'), '');
     syncClassFilterOptions();
     renderCreateMembers();
     document.getElementById('createPeriodError').textContent = '请选择任务周期';
@@ -2054,6 +2077,7 @@
 
   /* ═══════════ 初始化 ═══════════ */
   document.getElementById('createMemberStatusTh').style.display = 'none';
+  document.getElementById('createMemberStatusGroup').style.display = 'none';
   renderTaskTable();
   syncClassFilterOptions();
   renderCreateMembers();

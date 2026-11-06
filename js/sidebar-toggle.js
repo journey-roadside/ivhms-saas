@@ -20,8 +20,13 @@
     '  align-items:center;justify-content:center;background:var(--surface);border:1px solid var(--border);',
     '  border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.08);color:var(--fg);cursor:pointer;padding:0}',
     '.m-toggle svg{width:20px;height:20px}',
-    // 给固定按钮让位，标题不被压住
-    '.content{padding-top:64px}',
+    // 标题与汉堡按钮同行并水平居中：内容区顶部内缩，页头内标题脱离文档流居中
+    '.content{padding-top:12px}',
+    '.content .content-title{margin:0 0 12px;width:auto;min-height:40px;display:flex;align-items:center;justify-content:center;text-align:center;white-space:nowrap}',
+    '.content-header{position:relative;margin-left:0;margin-bottom:12px;min-height:40px;justify-content:flex-end}',
+    '.content-header .content-title{position:absolute;left:50%;top:0;transform:translateX(-50%);height:40px;min-height:0;margin:0;justify-content:center}',
+    '.content-header .breadcrumbs{position:absolute;left:50%;top:0;transform:translateX(-50%);height:40px;min-height:0;margin:0;align-items:center}',
+    '.breadcrumbs{margin-left:0;padding-bottom:12px;min-height:40px;justify-content:center}',
     // 新建/编辑页底部固定操作栏：移动端侧栏不占位
     '.create-action-bar{left:0}',
     '}',
@@ -33,7 +38,14 @@
     '.sidebar.open{transform:translateX(0)}',
     '.main-wrap{margin-left:0}',
     '.m-toggle{top:20px;left:20px}',
-    '.content{padding-top:72px}',
+    '.content{padding-top:20px}',
+    '.content-header .content-title,.content-header .breadcrumbs{height:40px}',
+    '}',
+    // 窄屏：页头右侧操作换到第二行，标题单独占满一行居中
+    '@media(max-width:640px){',
+    '.content-header{flex-wrap:wrap;row-gap:8px}',
+    '.content-header .content-title,.content-header .breadcrumbs{position:static;transform:none;flex:0 0 100%;height:auto;min-height:40px}',
+    '.content-header > :not(.content-title):not(.breadcrumbs){margin-left:auto;margin-right:auto}',
     '}'
   ].join('');
   document.head.appendChild(style);
